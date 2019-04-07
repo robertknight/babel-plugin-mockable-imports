@@ -94,6 +94,19 @@ import { $imports } from 'a-module';
     output: `
 import { $imports } from 'a-module';
 `
+  },
+  {
+    description: "re-exports of imported symbols",
+    code: `
+import { foo } from 'a-module';
+export { foo }`,
+    output: `
+import { foo } from 'a-module';
+${importsDecl(`{
+  foo: ["a-module", "foo", foo]
+}`)}
+export { foo };
+`
   }
 ];
 

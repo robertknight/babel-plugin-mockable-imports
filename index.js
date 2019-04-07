@@ -142,6 +142,13 @@ module.exports = ({types: t}) => {
           return;
         }
 
+        // Do not replace occurrences in `export { identifier }` expressions.
+        // Ideally we *should* make these exports change to reflect mocking.
+        // Bailing out here means that such code will at least compile.
+        if (child.parent.type === 'ExportSpecifier') {
+          return;
+        }
+
         // Replace import reference with `$imports.symbol`.
         if (
           child.parent.type === 'JSXOpeningElement' ||
