@@ -152,7 +152,8 @@ module.exports = ({types: t}) => {
         // Replace import reference with `$imports.symbol`.
         if (
           child.parent.type === 'JSXOpeningElement' ||
-          child.parent.type === 'JSXClosingElement'
+          child.parent.type === 'JSXClosingElement' ||
+          child.parent.type === 'JSXMemberExpression'
         ) {
           child.replaceWith(
             t.jsxMemberExpression(

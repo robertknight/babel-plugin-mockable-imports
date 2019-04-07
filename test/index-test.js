@@ -107,6 +107,24 @@ ${importsDecl(`{
 }`)}
 export { foo };
 `
+  },
+  {
+    description: "JSX member exports",
+    code: `
+import * as widgets from './widgets';
+
+function MyComponent() {
+  return <widgets.Widget/>
+}`,
+    output: `
+import * as widgets from './widgets';
+${importsDecl(`{
+  widgets: ["./widgets", "*", widgets]
+}`)}
+
+function MyComponent() {
+  return <$imports.widgets.Widget />;
+}`
   }
 ];
 
