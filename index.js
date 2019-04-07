@@ -196,12 +196,10 @@ module.exports = ({types: t}) => {
         }
 
         // Ignore the reference in the generated `$imports` variable declaration.
-        const newExprParent = child.findParent(p => p.isNewExpression());
-        if (
-          newExprParent &&
-          t.isIdentifier(newExprParent.node.callee) &&
-          newExprParent.node.callee.name === 'ImportMap'
-        ) {
+        const varDeclParent = child.findParent(p => p.isVariableDeclarator());
+        if (varDeclParent &&
+            varDeclParent.node.id.type === 'Identifier' &&
+            varDeclParent.node.id.name === '$imports') {
           return;
         }
 
