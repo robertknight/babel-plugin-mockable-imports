@@ -67,10 +67,27 @@ describe("helpers", () => {
 
         assert.throws(() => {
           map.$mock({ "b-module": { ident: "new-value" } });
-        });
+        }, 'Module does not import "ident" from "b-module"');
         assert.throws(() => {
           map.$mock({ "a-module": { otherIdent: "new-value" } });
+        }, 'Module does not import "otherIdent" from "a-module"');
+      });
+
+      it("supports namespace imports", () => {
+        const map = new ImportMap({
+          aModule: ["a-module", "*", { ident: "ident-value" }]
         });
+
+        map.$mock({ "a-module": { ident: "new-value" } });
+
+        assert.deepEqual(map.aModule, { ident: "new-value" });
+      });
+
+      it("throws if a mock is supplied for a module that is not imported", () => {
+        const map = new ImportMap({});
+        assert.throws(() => {
+          map.$mock({ "a-module": { ident: "new-value" } });
+        }, 'Module does not import "ident" from "a-module"');
       });
     });
 
