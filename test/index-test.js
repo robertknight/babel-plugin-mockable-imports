@@ -3,6 +3,13 @@
 const { transform } = require("@babel/core");
 const { assert } = require("chai");
 
+function importsDecl(init) {
+  return `
+import { ImportMap } from "babel-plugin-mockable-imports/lib/helpers";
+export const $imports = new ImportMap(${init});
+`.trim();
+}
+
 const fixtures = [
   {
     description: "named ES6 imports",
@@ -12,10 +19,9 @@ ident();
 `,
     output: `
 import { ident } from 'a-module';
-import { ImportMap } from "babel-plugin-mockable-imports/helpers";
-export const $imports = new ImportMap({
+${importsDecl(`{
   ident: ["a-module", "ident", ident]
-});
+}`)}
 $imports.ident();
 `
   },
@@ -27,10 +33,9 @@ ident();
 `,
     output: `
 import ident from 'a-module';
-import { ImportMap } from "babel-plugin-mockable-imports/helpers";
-export const $imports = new ImportMap({
+${importsDecl(`{
   ident: ["a-module", "default", ident]
-});
+}`)}
 $imports.ident();
 `
   },
@@ -42,10 +47,9 @@ aModule.ident();
 `,
     output: `
 import * as aModule from 'a-module';
-import { ImportMap } from "babel-plugin-mockable-imports/helpers";
-export const $imports = new ImportMap({
+${importsDecl(`{
   aModule: ["a-module", "*", aModule]
-});
+}`)}
 $imports.aModule.ident();
 `
   },
@@ -73,10 +77,9 @@ function MyComponent() {
 }`,
     output: `
 import Widget from './Widget';
-import { ImportMap } from "babel-plugin-mockable-imports/helpers";
-export const $imports = new ImportMap({
+${importsDecl(`{
   Widget: ["./Widget", "default", Widget]
-});
+}`)}
 
 function MyComponent() {
   return <$imports.Widget arg="value" />;

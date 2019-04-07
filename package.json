@@ -4,9 +4,15 @@
   "description": "Babel plugin for mocking ES imports",
   "main": "index.js",
   "scripts": {
+    "build": "babel helpers.js --out-dir lib",
     "format": "prettier --write **/*.js",
-    "test": "mocha"
+    "test": "mocha",
+    "prepublishOnly": "npm run build"
   },
+  "files": [
+    "index.js",
+    "lib/*.js"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/robertknight/babel-plugin-mockble-imports.git"
@@ -21,8 +27,10 @@
   },
   "homepage": "https://github.com/robertknight/babel-plugin-mockable-imports#readme",
   "devDependencies": {
+    "@babel/cli": "^7.4.3",
     "@babel/core": "^7.4.3",
     "@babel/plugin-syntax-jsx": "^7.2.0",
+    "@babel/preset-env": "^7.4.3",
     "chai": "^4.2.0",
     "eslint": "^5.16.0",
     "mocha": "^6.0.2",

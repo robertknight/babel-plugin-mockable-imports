@@ -1,5 +1,8 @@
 'use strict';
 
+const packageName = require('./package.json').name;
+const helperImportPath = `${packageName}/lib/helpers`;
+
 function isImportReference(path) {
   const name = path.node.name;
   const binding = path.scope.getBinding(name, /* noGlobal */ true);
@@ -45,7 +48,7 @@ module.exports = ({types: t}) => {
                 t.identifier('ImportMap'),
               ),
             ],
-            t.stringLiteral('babel-plugin-mockable-imports/helpers'),
+            t.stringLiteral(helperImportPath)
           );
 
           // Generate `export const $imports = new ImportMap(...)`
