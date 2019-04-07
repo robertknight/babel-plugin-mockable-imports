@@ -1,5 +1,7 @@
 # babel-plugin-mockable-imports
 
+[![Build Status](https://travis-ci.org/robertknight/babel-plugin-mockable-imports.svg?branch=master)](https://travis-ci.org/robertknight/babel-plugin-mockable-imports)
+
 A Babel plugin that modifies modules to enable mocking of their dependencies. The plugin was written with the following goals:
 
 - Provide a simple interface for mocking ES module imports
