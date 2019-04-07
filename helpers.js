@@ -26,17 +26,22 @@ class ImportMap {
    */
   $mock(imports) {
     Object.keys(imports).forEach(source => {
+      let sourceImports = imports[source];
+      if (typeof sourceImports === 'function') {
+        sourceImports = { default: sourceImports };
+      }
+
       // Handle namespace imports (`import * as foo from "foo"`).
       const namespaceAliases = Object.keys(this.$meta).filter(alias => {
         const [source_, symbol_] = this.$meta[alias];
         return source_ === source && symbol_ === '*';
       });
       namespaceAliases.forEach(alias => {
-        this[alias] = imports[source];
+        this[alias] = sourceImports;
       });
 
       // Handle named imports (`import { foo } from "..."`).
-      Object.keys(imports[source]).forEach(symbol => {
+      Object.keys(sourceImports).forEach(symbol => {
         const aliases = Object.keys(this.$meta).filter(alias => {
           const [source_, symbol_] = this.$meta[alias];
           return source_ === source && symbol_ === symbol;
@@ -49,7 +54,7 @@ class ImportMap {
         }
 
         aliases.forEach(alias => {
-          this[alias] = imports[source][symbol];
+          this[alias] = sourceImports[symbol];
         });
       });
     });

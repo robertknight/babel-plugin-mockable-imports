@@ -86,7 +86,7 @@ it can be mocked by setting the `default` key.
 
 For example, given `./Header.js`:
 
-```
+```js
 export default function Header() {
   ...
 }
@@ -94,10 +94,22 @@ export default function Header() {
 
 The `Header` function can be mocked in tests for a different module using:
 
-```
+```js
 $imports.$mock({
   './Header': { default: FakeHeader },
   './Footer': { default: FakeFooter },
+});
+```
+
+As a convenience, if the value for any of the keys in the object passed to
+`$mock` is a function, it is assumed to be a default export for the module.
+This means that assuming `FakeHeader` and `FakeFooter` are functions,
+the following is equivalent to the above:
+
+```js
+$imports.$mock({
+  './Header': FakeHeader,
+  './Footer': FakeFooter,
 });
 ```
 

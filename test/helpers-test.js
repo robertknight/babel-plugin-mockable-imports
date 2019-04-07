@@ -89,6 +89,15 @@ describe("helpers", () => {
           map.$mock({ "a-module": { ident: "new-value" } });
         }, 'Module does not import "ident" from "a-module"');
       });
+
+      it("supports a shorthand for mocking non-object default exports", () => {
+        const map = new ImportMap({
+          Widget: ["./Widget", "default", function Widget() {}]
+        });
+        const MockWidget = () => {};
+        map.$mock({ "./Widget": MockWidget });
+        assert.equal(map.Widget, MockWidget);
+      });
     });
 
     describe("$restore", () => {
