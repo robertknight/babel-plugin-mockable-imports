@@ -190,6 +190,18 @@ ${importsDecl(`{
 $imports.foo();
 ${trailer()}
 `
+  },
+  {
+    description: "non top-level CommonJS imports",
+    code: `
+function test() {
+  var foo = require('./foo');
+}`,
+    output: `
+function test() {
+  var foo = require('./foo');
+}
+`
   }
 ];
 

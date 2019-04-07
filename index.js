@@ -117,6 +117,11 @@ module.exports = ({types: t}) => {
           return;
         }
 
+        // Ignore non-top level require expressions.
+        if (varDecl.parentPath.parent.type !== 'Program') {
+          return;
+        }
+
         state.lastImport = varDecl.findParent(p => p.isVariableDeclaration());
 
         // `var aModule = require("a-module")`
