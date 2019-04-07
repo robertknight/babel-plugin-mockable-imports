@@ -6,8 +6,12 @@ const { assert } = require("chai");
 function importsDecl(init) {
   return `
 import { ImportMap } from "babel-plugin-mockable-imports/lib/helpers";
-export const $imports = new ImportMap(${init});
+const $imports = new ImportMap(${init});
 `.trim();
+}
+
+function trailer() {
+  return "export { $imports };";
 }
 
 const fixtures = [
@@ -23,6 +27,7 @@ ${importsDecl(`{
   ident: ["a-module", "ident", ident]
 }`)}
 $imports.ident();
+${trailer()}
 `
   },
   {
@@ -37,6 +42,7 @@ ${importsDecl(`{
   ident: ["a-module", "default", ident]
 }`)}
 $imports.ident();
+${trailer()}
 `
   },
   {
@@ -51,6 +57,7 @@ ${importsDecl(`{
   aModule: ["a-module", "*", aModule]
 }`)}
 $imports.aModule.ident();
+${trailer()}
 `
   },
   {
@@ -84,6 +91,8 @@ ${importsDecl(`{
 function MyComponent() {
   return <$imports.Widget arg="value" />;
 }
+
+${trailer()}
 `
   },
   {
@@ -106,6 +115,7 @@ ${importsDecl(`{
   foo: ["a-module", "foo", foo]
 }`)}
 export { foo };
+${trailer()}
 `
   },
   {
@@ -124,7 +134,62 @@ ${importsDecl(`{
 
 function MyComponent() {
   return <$imports.widgets.Widget />;
-}`
+}
+
+${trailer()}
+`
+  },
+  {
+    description: "CommonJS default or namespace imports",
+    code: `
+var foo = require('./foo');
+foo();
+`,
+    output: `
+var foo = require('./foo');
+
+${importsDecl(`{
+  foo: ["./foo", "*", foo]
+}`)}
+$imports.foo();
+${trailer()}
+`
+  },
+  {
+    description: "CommonJS object pattern imports",
+    code: `
+var { foo } = require('./foo');
+foo();
+`,
+    output: `
+var {
+  foo
+} = require('./foo');
+
+${importsDecl(`{
+  foo: ["./foo", "foo", foo]
+}`)}
+$imports.foo();
+${trailer()}
+`
+  },
+  {
+    description: "CommonJS object pattern imports with rename",
+    code: `
+var { bar: foo } = require('./foo');
+foo();
+`,
+    output: `
+var {
+  bar: foo
+} = require('./foo');
+
+${importsDecl(`{
+  foo: ["./foo", "bar", foo]
+}`)}
+$imports.foo();
+${trailer()}
+`
   }
 ];
 

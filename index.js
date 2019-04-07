@@ -3,17 +3,20 @@
 const packageName = require('./package.json').name;
 const helperImportPath = `${packageName}/lib/helpers`;
 
-function isImportReference(path) {
-  const name = path.node.name;
-  const binding = path.scope.getBinding(name, /* noGlobal */ true);
-  if (!binding) {
-    return false;
-  }
-  const importParent = binding.path.findParent(p => p.isImportDeclaration());
-  return importParent != null;
-}
-
 module.exports = ({types: t}) => {
+  function commomJSRequireSource(node) {
+    const args = node.arguments;
+    if (
+      node.callee.name === 'require' &&
+      args.length === 1 &&
+      t.isStringLiteral(args[0])
+    ) {
+      return args[0].value;
+    } else {
+      return null;
+    }
+  }
+
   return {
     visitor: {
       Program: {
@@ -48,7 +51,7 @@ module.exports = ({types: t}) => {
                 t.identifier('ImportMap'),
               ),
             ],
-            t.stringLiteral(helperImportPath)
+            t.stringLiteral(helperImportPath),
           );
 
           // Generate `export const $imports = new ImportMap(...)`
@@ -64,27 +67,76 @@ module.exports = ({types: t}) => {
               ),
             ),
           );
-          const $importsDecl = t.exportNamedDeclaration(
-            t.variableDeclaration('const', [
-              t.variableDeclarator(
-                t.identifier('$imports'),
-                t.newExpression(t.identifier('ImportMap'), [
-                  importMetaObjLiteral,
-                ]),
-              ),
-            ]),
-            [
-              t.exportSpecifier(
-                t.identifier('$imports'),
-                t.identifier('$imports'),
-              ),
-            ],
-          );
+          const $importsDecl = t.variableDeclaration('const', [
+            t.variableDeclarator(
+              t.identifier('$imports'),
+              t.newExpression(t.identifier('ImportMap'), [
+                importMetaObjLiteral,
+              ]),
+            ),
+          ]);
+
+          const exportImportsDecl = t.exportNamedDeclaration(null, [
+            t.exportSpecifier(
+              t.identifier('$imports'),
+              t.identifier('$imports'),
+            ),
+          ]);
 
           // Insert `$imports` declaration below last import.
           const insertedNodes = state.lastImport.insertAfter(helperImport);
           insertedNodes[0].insertAfter($importsDecl);
+
+          // Insert `export { $imports }` at the end of the file. The reason for
+          // inserting here is that this gets converted to `exports.$imports =
+          // $imports` if the file is later transpiled to CommonJS, and this
+          // must come after any `module.exports = <value>` assignments.
+          const body = path.get('body');
+          body[body.length - 1].insertAfter(exportImportsDecl);
         },
+      },
+
+      CallExpression(path, state) {
+        const node = path.node;
+        const src = commomJSRequireSource(node);
+        if (!src) {
+          return;
+        }
+
+        // Ignore requires that are not part of the initializer of a
+        // `var init = require("module")` statement.
+        const varDecl = path.findParent(p => p.isVariableDeclarator());
+        if (!varDecl) {
+          return;
+        }
+
+        // If the `require` is wrapped in some way, we just ignore it, since
+        // we cannot determine which symbols are being required without knowing
+        // what the wrapping expression does.
+        if (varDecl.node.init !== node) {
+          return;
+        }
+
+        state.lastImport = varDecl.findParent(p => p.isVariableDeclaration());
+
+        // `var aModule = require("a-module")`
+        const id = varDecl.node.id;
+        if (id.type === 'Identifier') {
+          state.importMeta.set(id, {
+            symbol: '*',
+            source: src,
+            value: id,
+          });
+        } else if (id.type === 'ObjectPattern') {
+          // `var { aSymbol: localName } = require("a-module")`
+          for (let property of id.properties) {
+            state.importMeta.set(property.value, {
+              symbol: property.key.name,
+              source: src,
+              value: property.value,
+            });
+          }
+        }
       },
 
       ImportDeclaration(path, state) {
@@ -128,7 +180,13 @@ module.exports = ({types: t}) => {
       },
 
       ReferencedIdentifier(child, state) {
-        if (state.aborted || !isImportReference(child)) {
+        if (state.aborted) {
+          return;
+        }
+
+        const name = child.node.name;
+        const binding = child.scope.getBinding(name, /* noGlobal */ true);
+        if (!binding || !state.importMeta.has(binding.identifier)) {
           return;
         }
 
@@ -173,3 +231,4 @@ module.exports = ({types: t}) => {
     },
   };
 };
+('use strict');
