@@ -4,7 +4,7 @@
 
 A Babel plugin that modifies modules to enable mocking of their dependencies. The plugin was written with the following goals:
 
-- Provide a simple interface for mocking ES module imports
+- Provide a simple interface for mocking ES and CommonJS (`require`) module imports
 - Work when running tests in Node with any test runner or in the browser when
   using any bundler (Browserify, Webpack etc.) or no bunder at all
 - Minimize the amount of extra code added to modules, since extra code
@@ -138,8 +138,42 @@ docs](https://babeljs.io/docs/en/options#overrides). You can also define
 [overrides](https://babeljs.io/docs/en/options#overrides) for more fine-grained
 rules.
 
-You can use this to prevent the plugin from mocking imports in test modules
-for example.
+As a convenience, the plugin by default skips any files in directories named
+"test", "__tests__" or subdirectories of directories with those names. This
+can be configured using the `excludeDirs` option.
+
+### Options
+
+The plugin supports the following options:
+
+`excludeDirs`
+
+An array of directory names (eg. "tests") whose modules are excluded from
+this transformation by default.
+
+`excludeImportsFromModules`
+
+An array of module names which should be ignored when processing imports.
+Any imports from these modules will not be mockable.
+Default: `["proxyquire"]`.
+
+### CommonJS support
+
+The plugin has basic support for CommonJS. It will recognize the
+following patterns as imports:
+
+```js
+var foo = require('./foo');
+var { foo } = require('./foo');
+var { foo: bar } = require('./foo');
+```
+
+Where `var` may also be `const` or `let`. If the `require` is wrapped or
+contained within an expression it will not be processed.
+
+When processing a CommonJS module the plugin still emits ES6 `import` and
+`export` declarations, so transforming of ES6 `import`/`export` statements
+to CommonJS must be enabled in Babel.
 
 ## How it works
 

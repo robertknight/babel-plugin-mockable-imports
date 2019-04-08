@@ -1,19 +1,84 @@
 'use strict';
 
+const pathModule = require('path');
+
 const packageName = require('./package.json').name;
 const helperImportPath = `${packageName}/lib/helpers`;
 
-function isImportReference(path) {
-  const name = path.node.name;
-  const binding = path.scope.getBinding(name, /* noGlobal */ true);
-  if (!binding) {
-    return false;
-  }
-  const importParent = binding.path.findParent(p => p.isImportDeclaration());
-  return importParent != null;
-}
+const EXCLUDE_LIST = [
+  // Proxyquirify and proxyquire-universal are two popular mocking libraries
+  // which include Browserify plugins that look for references to their imports
+  // in the code. You'd never want to mock these, and applying the transform
+  // here breaks the plugin.
+  'proxyquire',
+];
+
+const EXCLUDED_DIRS = ['test', '__tests__'];
 
 module.exports = ({types: t}) => {
+  /**
+   * Return the required module from a CallExpression, if it is a `require(...)`
+   * call.
+   */
+  function commomJSRequireSource(node) {
+    const args = node.arguments;
+    if (
+      node.callee.name === 'require' &&
+      args.length === 1 &&
+      t.isStringLiteral(args[0])
+    ) {
+      return args[0].value;
+    } else {
+      return null;
+    }
+  }
+
+  /**
+   * Return true if imports from the module `source` should not be made
+   * mockable.
+   */
+  function excludeImportsFromModule(source, state) {
+    const excludeList = state.opts.excludeImportsFromModules || EXCLUDE_LIST;
+    return excludeList.includes(source);
+  }
+
+  /**
+   * Return true if the current module should not be processed at all.
+   */
+  function excludeModule(state) {
+    const filename = state.file.opts.filename;
+    if (!filename) {
+      // No filename was supplied when Babel was run, assume this file should
+      // be processed.
+      return false;
+    }
+
+    const excludeList = state.opts.excludeDirs || EXCLUDED_DIRS;
+    const dirParts = pathModule.dirname(filename).split(pathModule.sep);
+    return dirParts.some(part => excludeList.includes(part));
+  }
+
+  function isCommonJSExportAssignment(path) {
+    const assignExpr = path.node;
+    if (t.isMemberExpression(assignExpr.left)) {
+      const target = assignExpr.left;
+      if (t.isIdentifier(target.object) && t.isIdentifier(target.property)) {
+        return (
+          target.object.name === 'module' && target.property.name === 'exports'
+        );
+      }
+    }
+    return false;
+  }
+
+  function lastExprInSequence(node) {
+    if (t.isSequenceExpression(node)) {
+      return node.expressions[node.expressions.length - 1];
+    } else {
+      return node;
+    }
+  }
+
   return {
     visitor: {
       Program: {
@@ -30,7 +95,11 @@ module.exports = ({types: t}) => {
           // needing to do this. This currently results in processing of the
           // file by other plugins stopping though it seems. Perhaps need to
           // create an innert path and use that?
-          state.aborted = false;
+          state.aborted = excludeModule(state);
+
+          // Set to `true` if a `module.exports = <expr>` expression was seen
+          // in the module.
+          state.hasCommonJSExportAssignment = false;
         },
 
         // Emit the code that generates the `$imports` object used by tests to
@@ -48,7 +117,7 @@ module.exports = ({types: t}) => {
                 t.identifier('ImportMap'),
               ),
             ],
-            t.stringLiteral(helperImportPath)
+            t.stringLiteral(helperImportPath),
           );
 
           // Generate `export const $imports = new ImportMap(...)`
@@ -64,27 +133,117 @@ module.exports = ({types: t}) => {
               ),
             ),
           );
-          const $importsDecl = t.exportNamedDeclaration(
-            t.variableDeclaration('const', [
-              t.variableDeclarator(
-                t.identifier('$imports'),
-                t.newExpression(t.identifier('ImportMap'), [
-                  importMetaObjLiteral,
-                ]),
-              ),
-            ]),
-            [
-              t.exportSpecifier(
-                t.identifier('$imports'),
-                t.identifier('$imports'),
-              ),
-            ],
-          );
+          const $importsDecl = t.variableDeclaration('const', [
+            t.variableDeclarator(
+              t.identifier('$imports'),
+              t.newExpression(t.identifier('ImportMap'), [
+                importMetaObjLiteral,
+              ]),
+            ),
+          ]);
+
+          const exportImportsDecl = t.exportNamedDeclaration(null, [
+            t.exportSpecifier(
+              t.identifier('$imports'),
+              t.identifier('$imports'),
+            ),
+          ]);
 
           // Insert `$imports` declaration below last import.
           const insertedNodes = state.lastImport.insertAfter(helperImport);
           insertedNodes[0].insertAfter($importsDecl);
+
+          // Insert `export { $imports }` at the end of the file. The reason for
+          // inserting here is that this gets converted to `exports.$imports =
+          // $imports` if the file is later transpiled to CommonJS, and this
+          // must come after any `module.exports = <value>` assignments.
+          const body = path.get('body');
+          body[body.length - 1].insertAfter(exportImportsDecl);
+
+          // If the module contains a `module.exports = <foo>` expression then
+          // add `module.exports.$imports = <foo>` at the end of the file.
+          if (state.hasCommonJSExportAssignment) {
+            const moduleExportsExpr = t.memberExpression(
+              t.memberExpression(
+                t.identifier('module'),
+                t.identifier('exports'),
+              ),
+              t.identifier('$imports'),
+            );
+            const cjsExport = t.expressionStatement(
+              t.assignmentExpression(
+                '=',
+                moduleExportsExpr,
+                t.identifier('$imports'),
+              ),
+            );
+            body[body.length - 1].insertAfter(cjsExport);
+          }
         },
+      },
+
+      AssignmentExpression(path, state) {
+        if (!isCommonJSExportAssignment(path)) {
+          return;
+        }
+        state.hasCommonJSExportAssignment = true;
+      },
+
+      CallExpression(path, state) {
+        const node = path.node;
+        const source = commomJSRequireSource(node);
+        if (!source) {
+          return;
+        }
+
+        if (excludeImportsFromModule(source, state)) {
+          return;
+        }
+
+        // Ignore requires that are not part of the initializer of a
+        // `var init = require("module")` statement.
+        const varDecl = path.findParent(p => p.isVariableDeclarator());
+        if (!varDecl) {
+          return;
+        }
+
+        // If the `require` is wrapped in some way, we just ignore it, since
+        // we cannot determine which symbols are being required without knowing
+        // what the wrapping expression does.
+        //
+        // An exception is made where the `require` statement is wrapped in
+        // a sequence (`var foo = (..., require('blah'))`) as some code coverage
+        // transforms do. We know in this case that the result will be the
+        // result of the require.
+        if (lastExprInSequence(varDecl.node.init) !== node) {
+          return;
+        }
+
+        // Ignore non-top level require expressions.
+        if (varDecl.parentPath.parent.type !== 'Program') {
+          return;
+        }
+
+        state.lastImport = varDecl.findParent(p => p.isVariableDeclaration());
+
+        // `var aModule = require("a-module")`
+        const id = varDecl.node.id;
+        if (id.type === 'Identifier') {
+          state.importMeta.set(id, {
+            symbol: '<CJS>',
+            source,
+            value: id,
+          });
+        } else if (id.type === 'ObjectPattern') {
+          // `var { aSymbol: localName } = require("a-module")`
+          for (let property of id.properties) {
+            state.importMeta.set(property.value, {
+              symbol: property.key.name,
+              source,
+              value: property.value,
+            });
+          }
+        }
       },
 
       ImportDeclaration(path, state) {
@@ -119,25 +278,36 @@ module.exports = ({types: t}) => {
               throw new Error('Unknown import specifier type: ' + spec.type);
           }
 
+          const source = path.node.source.value;
+          if (excludeImportsFromModule(source, state)) {
+            return;
+          }
+
           state.importMeta.set(spec.local, {
             symbol: imported,
-            source: path.node.source.value,
+            source,
             value: spec.local,
           });
         });
       },
 
       ReferencedIdentifier(child, state) {
-        if (state.aborted || !isImportReference(child)) {
+        if (state.aborted) {
+          return;
+        }
+
+        const name = child.node.name;
+        const binding = child.scope.getBinding(name, /* noGlobal */ true);
+        if (!binding || !state.importMeta.has(binding.identifier)) {
           return;
         }
 
         // Ignore the reference in the generated `$imports` variable declaration.
-        const newExprParent = child.findParent(p => p.isNewExpression());
+        const varDeclParent = child.findParent(p => p.isVariableDeclarator());
         if (
-          newExprParent &&
-          t.isIdentifier(newExprParent.node.callee) &&
-          newExprParent.node.callee.name === 'ImportMap'
+          varDeclParent &&
+          varDeclParent.node.id.type === 'Identifier' &&
+          varDeclParent.node.id.name === '$imports'
         ) {
           return;
         }
@@ -173,3 +343,4 @@ module.exports = ({types: t}) => {
     },
   };
 };
+('use strict');

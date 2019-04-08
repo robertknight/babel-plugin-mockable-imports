@@ -26,35 +26,50 @@ class ImportMap {
    */
   $mock(imports) {
     Object.keys(imports).forEach(source => {
-      let sourceImports = imports[source];
-      if (typeof sourceImports === 'function') {
-        sourceImports = { default: sourceImports };
+      const sourceImports = imports[source];
+      let esImports = sourceImports;
+      if (typeof esImports === 'function') {
+        esImports = {default: esImports};
       }
 
-      // Handle namespace imports (`import * as foo from "foo"`).
+      // Handle namespace ES imports (`import * as foo from "foo"`).
       const namespaceAliases = Object.keys(this.$meta).filter(alias => {
         const [source_, symbol_] = this.$meta[alias];
         return source_ === source && symbol_ === '*';
       });
       namespaceAliases.forEach(alias => {
+        this[alias] = esImports;
+      });
+
+      // Handle CJS imports (`var foo = require("bar")`).
+      const cjsAliases = Object.keys(this.$meta).filter(alias => {
+        const [source_, symbol_] = this.$meta[alias];
+        return source_ === source && symbol_ === '<CJS>';
+      });
+      cjsAliases.forEach(alias => {
         this[alias] = sourceImports;
       });
 
-      // Handle named imports (`import { foo } from "..."`).
-      Object.keys(sourceImports).forEach(symbol => {
+      // Handle named ES imports (`import { foo } from "..."`) or
+      // destructured CJS imports (`var { foo } = require("...")`).
+      Object.keys(esImports).forEach(symbol => {
         const aliases = Object.keys(this.$meta).filter(alias => {
           const [source_, symbol_] = this.$meta[alias];
           return source_ === source && symbol_ === symbol;
         });
 
-        if (aliases.length === 0 && namespaceAliases.length === 0) {
+        if (
+          aliases.length === 0 &&
+          namespaceAliases.length === 0 &&
+          cjsAliases.length === 0
+        ) {
           throw new Error(
             `Module does not import "${symbol}" from "${source}"`,
           );
         }
 
         aliases.forEach(alias => {
-          this[alias] = sourceImports[symbol];
+          this[alias] = esImports[symbol];
         });
       });
     });
