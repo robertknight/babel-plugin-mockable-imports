@@ -206,15 +206,15 @@ the properties to their original values.
 This plugin was created to work around [subtle problems and
 inefficiencies](https://robertknight.me.uk/posts/browserify-dependency-mocking/)
 that arose when using [proxyquire](https://github.com/thlorenz/proxyquire). In
-particular:
+particular proxyquire:
 
- - It evaluates the module under test and all its dependencies with an empty
+ - Evaluates the module under test and all its dependencies with an empty
    module cache each time it is invoked. In some respects this is a useful
    feature, but there is non-trivial overhead to doing this and
    it can also cause difficult-to-debug failures when a third-party module
    that maintains global state is evaluated multiple times, or objects from
    different copies of the module come into contact with one another.
- - It is tied to Node and Browserify
+ - Is tied to Node and Browserify
 
 There is another Babel plugin,
 [babel-plugin-rewire](https://github.com/speedskater/babel-plugin-rewire) which
