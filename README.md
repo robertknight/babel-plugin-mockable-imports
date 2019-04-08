@@ -138,12 +138,18 @@ docs](https://babeljs.io/docs/en/options#overrides). You can also define
 [overrides](https://babeljs.io/docs/en/options#overrides) for more fine-grained
 rules.
 
-You can use this to prevent the plugin from mocking imports in test modules
-for example.
+As a convenience, the plugin by default skips any files in directories named
+"test", "__tests__" or subdirectories of directories with those names. This
+can be configured using the `excludeDirs` option.
 
 ### Options
 
 The plugin supports the following options:
+
+`excludeDirs`
+
+An array of directory names (eg. "tests") whose modules are excluded from
+this transformation by default.
 
 `excludeImportsFromModules`
 

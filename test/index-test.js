@@ -254,4 +254,35 @@ ignoreMe();
 
     assert.equal(normalize(code), normalize(output));
   });
+
+  describe("dir-based exclusion", () => {
+    function doesTransformFile(filename, pluginOpts = {}) {
+      const code = `
+import * as foo from './foo';
+var foo2 = require('foo');
+foo();
+foo2();`;
+      const { code: output } = transform(code, {
+        plugins: [[pluginPath, pluginOpts]],
+        filename
+      });
+      return normalize(code) !== normalize(output);
+    }
+
+    it("does transform modules outside of test dirs", () => {
+      assert.isTrue(doesTransformFile("/Users/john/project/index.js"));
+    });
+
+    it("does not transform modules in test dirs by default", () => {
+      assert.isFalse(doesTransformFile("/Users/john/project/test/index.js"));
+    });
+
+    it("does not transform modules that match user-provided exclude list", () => {
+      assert.isFalse(
+        doesTransformFile("/Users/john/project/prueba/index.js", {
+          excludeDirs: ["prueba"]
+        })
+      );
+    });
+  });
 });

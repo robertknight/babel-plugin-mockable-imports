@@ -1,5 +1,7 @@
 'use strict';
 
+const pathModule = require('path');
+
 const packageName = require('./package.json').name;
 const helperImportPath = `${packageName}/lib/helpers`;
 
@@ -9,6 +11,11 @@ const EXCLUDE_LIST = [
   // in the code. You'd never want to mock these, and applying the transform
   // here breaks the plugin.
   'proxyquire',
+];
+
+const EXCLUDED_DIRS = [
+  'test',
+  '__tests__',
 ];
 
 module.exports = ({types: t}) => {
@@ -38,6 +45,22 @@ module.exports = ({types: t}) => {
     return excludeList.includes(source);
   }
 
+  /**
+   * Return true if the current module should not be processed at all.
+   */
+  function excludeModule(state) {
+    const filename = state.file.opts.filename;
+    if (!filename) {
+      // No filename was supplied when Babel was run, assume this file should
+      // be processed.
+      return false;
+    }
+
+    const excludeList = state.opts.excludeDirs || EXCLUDED_DIRS;
+    const dirParts = pathModule.dirname(filename).split(pathModule.sep);
+    return dirParts.some(part => excludeList.includes(part));
+  }
+
   return {
     visitor: {
       Program: {
@@ -54,7 +77,7 @@ module.exports = ({types: t}) => {
           // needing to do this. This currently results in processing of the
           // file by other plugins stopping though it seems. Perhaps need to
           // create an innert path and use that?
-          state.aborted = false;
+          state.aborted = excludeModule(state);
         },
 
         // Emit the code that generates the `$imports` object used by tests to
