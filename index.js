@@ -13,10 +13,7 @@ const EXCLUDE_LIST = [
   'proxyquire',
 ];
 
-const EXCLUDED_DIRS = [
-  'test',
-  '__tests__',
-];
+const EXCLUDED_DIRS = ['test', '__tests__'];
 
 module.exports = ({types: t}) => {
   /**
@@ -61,6 +58,27 @@ module.exports = ({types: t}) => {
     return dirParts.some(part => excludeList.includes(part));
   }
 
+  function isCommonJSExportAssignment(path) {
+    const assignExpr = path.node;
+    if (t.isMemberExpression(assignExpr.left)) {
+      const target = assignExpr.left;
+      if (t.isIdentifier(target.object) && t.isIdentifier(target.property)) {
+        return (
+          target.object.name === 'module' && target.property.name === 'exports'
+        );
+      }
+    }
+    return false;
+  }
+
+  function lastExprInSequence(node) {
+    if (t.isSequenceExpression(node)) {
+      return node.expressions[node.expressions.length - 1];
+    } else {
+      return node;
+    }
+  }
+
   return {
     visitor: {
       Program: {
@@ -78,6 +96,10 @@ module.exports = ({types: t}) => {
           // file by other plugins stopping though it seems. Perhaps need to
           // create an innert path and use that?
           state.aborted = excludeModule(state);
+
+          // Set to `true` if a `module.exports = <expr>` expression was seen
+          // in the module.
+          state.hasCommonJSExportAssignment = false;
         },
 
         // Emit the code that generates the `$imports` object used by tests to
@@ -137,7 +159,34 @@ module.exports = ({types: t}) => {
           // must come after any `module.exports = <value>` assignments.
           const body = path.get('body');
           body[body.length - 1].insertAfter(exportImportsDecl);
+
+          // If the module contains a `module.exports = <foo>` expression then
+          // add `module.exports.$imports = <foo>` at the end of the file.
+          if (state.hasCommonJSExportAssignment) {
+            const moduleExportsExpr = t.memberExpression(
+              t.memberExpression(
+                t.identifier('module'),
+                t.identifier('exports'),
+              ),
+              t.identifier('$imports'),
+            );
+            const cjsExport = t.expressionStatement(
+              t.assignmentExpression(
+                '=',
+                moduleExportsExpr,
+                t.identifier('$imports'),
+              ),
+            );
+            body[body.length - 1].insertAfter(cjsExport);
+          }
         },
+      },
+
+      AssignmentExpression(path, state) {
+        if (!isCommonJSExportAssignment(path)) {
+          return;
+        }
+        state.hasCommonJSExportAssignment = true;
       },
 
       CallExpression(path, state) {
@@ -161,7 +210,12 @@ module.exports = ({types: t}) => {
         // If the `require` is wrapped in some way, we just ignore it, since
         // we cannot determine which symbols are being required without knowing
         // what the wrapping expression does.
-        if (varDecl.node.init !== node) {
+        //
+        // An exception is made where the `require` statement is wrapped in
+        // a sequence (`var foo = (..., require('blah'))`) as some code coverage
+        // transforms do. We know in this case that the result will be the
+        // result of the require.
+        if (lastExprInSequence(varDecl.node.init) !== node) {
           return;
         }
 
@@ -250,9 +304,11 @@ module.exports = ({types: t}) => {
 
         // Ignore the reference in the generated `$imports` variable declaration.
         const varDeclParent = child.findParent(p => p.isVariableDeclarator());
-        if (varDeclParent &&
-            varDeclParent.node.id.type === 'Identifier' &&
-            varDeclParent.node.id.name === '$imports') {
+        if (
+          varDeclParent &&
+          varDeclParent.node.id.type === 'Identifier' &&
+          varDeclParent.node.id.name === '$imports'
+        ) {
           return;
         }
 

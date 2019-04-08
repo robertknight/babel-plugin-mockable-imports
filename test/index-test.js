@@ -202,6 +202,43 @@ function test() {
   var foo = require('./foo');
 }
 `
+  },
+  {
+    description: "module with default CommonJS export",
+    code: `
+var foo = require('./foo');
+function bar() { foo() }
+module.exports = bar;
+`,
+    output: `
+var foo = require('./foo');
+
+${importsDecl(`{
+  foo: ["./foo", "*", foo]
+}`)}
+
+function bar() {
+  $imports.foo();
+}
+
+module.exports = bar;
+module.exports.$imports = $imports;
+${trailer()}
+`
+  },
+  {
+    description: "commom JS import wrapped in sequence",
+    code: `
+var foo = (true, require('./foo'));
+foo();
+`,
+    output: `
+var foo = (true, require('./foo'));
+${importsDecl(`{
+  foo: ["./foo", "*", foo]
+}`)}
+$imports.foo();
+${trailer()}`
   }
 ];
 
