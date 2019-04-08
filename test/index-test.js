@@ -149,7 +149,7 @@ foo();
 var foo = require('./foo');
 
 ${importsDecl(`{
-  foo: ["./foo", "*", foo]
+  foo: ["./foo", "<CJS>", foo]
 }`)}
 $imports.foo();
 ${trailer()}
@@ -214,7 +214,7 @@ module.exports = bar;
 var foo = require('./foo');
 
 ${importsDecl(`{
-  foo: ["./foo", "*", foo]
+  foo: ["./foo", "<CJS>", foo]
 }`)}
 
 function bar() {
@@ -235,7 +235,7 @@ foo();
     output: `
 var foo = (true, require('./foo'));
 ${importsDecl(`{
-  foo: ["./foo", "*", foo]
+  foo: ["./foo", "<CJS>", foo]
 }`)}
 $imports.foo();
 ${trailer()}`

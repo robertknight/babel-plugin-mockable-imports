@@ -98,6 +98,15 @@ describe("helpers", () => {
         map.$mock({ "./Widget": MockWidget });
         assert.equal(map.Widget, MockWidget);
       });
+
+      it("mocks symbols imported via CommonJS imports", () => {
+        const map = new ImportMap({
+          Widget: ["./Widget", "<CJS>", function Widget() {}]
+        });
+        const MockWidget = () => {};
+        map.$mock({ "./Widget": MockWidget });
+        assert.equal(map.Widget, MockWidget);
+      });
     });
 
     describe("$restore", () => {

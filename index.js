@@ -230,7 +230,7 @@ module.exports = ({types: t}) => {
         const id = varDecl.node.id;
         if (id.type === 'Identifier') {
           state.importMeta.set(id, {
-            symbol: '*',
+            symbol: '<CJS>',
             source,
             value: id,
           });
