@@ -48,6 +48,10 @@ use:
 }
 ```
 
+By default the plugin will try to avoid processing test modules. See the
+section on limiting mocking to [specific
+files](#limiting-mocking-to-specific-files) for details.
+
 
 ### Basic usage in tests
 
@@ -96,6 +100,10 @@ describe('generatePassword', () => {
 });
 ```
 
+If the module you want to test uses CommonJS / Node style imports instead
+(`var someModule = require("some-module")`, see the [section on
+CommonJS](#commonjs-support).
+
 ### Mocking default exports
 
 If a module being mocked has a default export (eg. `export default MyReactComponent`),
@@ -139,8 +147,8 @@ docs](https://babeljs.io/docs/en/options#overrides). You can also define
 rules.
 
 As a convenience, the plugin by default skips any files in directories named
-"test", "__tests__" or subdirectories of directories with those names. This
-can be configured using the `excludeDirs` option.
+`test` or `__tests__` or their subdirectories. This can be configured using the
+`excludeDirs` option.
 
 ### Options
 
@@ -198,6 +206,23 @@ const someValue = $imports.dependencyA() + $imports.dependencyB();
 When you call `$imports.$mock` in a test, the values of these properties are
 temporarily changed to refer to the mocks instead. `$imports.$restore` resets
 the properties to their original values.
+
+## Known issues and limitations
+
+- The plugin adds an export named `$imports` to every module it processes.
+  This may cause conflicts if you try to combine exports from multiple modules
+  using `export * from <module>`. [See
+  issue](https://github.com/robertknight/babel-plugin-mockable-imports/issues/2).
+  It can also cause problems if you have code which tries to loop over the
+  exports of a module and does not gracefully handle unexpected exports.
+- There is currently no support for dynamic imports, either using `import()`
+  to obtain a promise for a module, or calling `require` anywhere other than
+  at the top level of a module.
+
+## Troubleshooting
+
+If you encounter any problems using this plugin, please [file an
+issue](https://github.com/robertknight/babel-plugin-mockable-imports/issues).
 
 ## FAQ
 
