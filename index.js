@@ -3,7 +3,19 @@
 const packageName = require('./package.json').name;
 const helperImportPath = `${packageName}/lib/helpers`;
 
+const EXCLUDE_LIST = [
+  // Proxyquirify and proxyquire-universal are two popular mocking libraries
+  // which include Browserify plugins that look for references to their imports
+  // in the code. You'd never want to mock these, and applying the transform
+  // here breaks the plugin.
+  'proxyquire',
+];
+
 module.exports = ({types: t}) => {
+  /**
+   * Return the required module from a CallExpression, if it is a `require(...)`
+   * call.
+   */
   function commomJSRequireSource(node) {
     const args = node.arguments;
     if (
@@ -15,6 +27,15 @@ module.exports = ({types: t}) => {
     } else {
       return null;
     }
+  }
+
+  /**
+   * Return true if imports from the module `source` should not be made
+   * mockable.
+   */
+  function excludeImportsFromModule(source, state) {
+    const excludeList = state.opts.excludeImportsFromModules || EXCLUDE_LIST;
+    return excludeList.includes(source);
   }
 
   return {
@@ -98,8 +119,12 @@ module.exports = ({types: t}) => {
 
       CallExpression(path, state) {
         const node = path.node;
-        const src = commomJSRequireSource(node);
-        if (!src) {
+        const source = commomJSRequireSource(node);
+        if (!source) {
+          return;
+        }
+
+        if (excludeImportsFromModule(source, state)) {
           return;
         }
 
@@ -129,7 +154,7 @@ module.exports = ({types: t}) => {
         if (id.type === 'Identifier') {
           state.importMeta.set(id, {
             symbol: '*',
-            source: src,
+            source,
             value: id,
           });
         } else if (id.type === 'ObjectPattern') {
@@ -137,7 +162,7 @@ module.exports = ({types: t}) => {
           for (let property of id.properties) {
             state.importMeta.set(property.value, {
               symbol: property.key.name,
-              source: src,
+              source,
               value: property.value,
             });
           }
@@ -176,9 +201,14 @@ module.exports = ({types: t}) => {
               throw new Error('Unknown import specifier type: ' + spec.type);
           }
 
+          const source = path.node.source.value;
+          if (excludeImportsFromModule(source, state)) {
+            return;
+          }
+
           state.importMeta.set(spec.local, {
             symbol: imported,
-            source: path.node.source.value,
+            source,
             value: spec.local,
           });
         });

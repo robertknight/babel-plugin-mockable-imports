@@ -141,6 +141,16 @@ rules.
 You can use this to prevent the plugin from mocking imports in test modules
 for example.
 
+### Options
+
+The plugin supports the following options:
+
+`excludeImportsFromModules`
+
+An array of module names which should be ignored when processing imports.
+Any imports from these modules will not be mockable.
+Default: `["proxyquire"]`.
+
 ### CommonJS support
 
 The plugin has basic support for CommonJS. It will recognize the

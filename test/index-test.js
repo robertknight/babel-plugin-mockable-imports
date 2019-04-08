@@ -205,14 +205,53 @@ function test() {
   }
 ];
 
+const pluginPath = require.resolve("../index");
+const syntaxPlugins = ["@babel/plugin-syntax-jsx"];
+
+const options = {
+  plugins: [...syntaxPlugins, pluginPath]
+};
+
+function normalize(code) {
+  return code.replace(/\n\n/gm, "\n").trim();
+}
+
 describe("plugin", () => {
   fixtures.forEach(({ description, code, output }) => {
     it(`generates expected code for ${description}`, () => {
-      const options = {
-        plugins: ["@babel/plugin-syntax-jsx", require.resolve("../index")]
-      };
       const { code: actualOutput } = transform(code, options);
       assert.equal(actualOutput.trim(), output.trim());
     });
+  });
+
+  it("ignores excluded modules in default exclude list", () => {
+    const code = `
+var proxyquire = require('proxyquire');
+import proxyquire2 from 'proxyquire';
+proxyquire(require);
+proxyquire2(require);
+`;
+    const { code: output } = transform(code, options);
+    assert.equal(normalize(code), normalize(output));
+  });
+
+  it("ignores excluded modules in user-provided exclude list", () => {
+    const code = `
+var ignoreMe = require('ignore-me');
+ignoreMe();
+`;
+    const { code: output } = transform(code, {
+      plugins: [
+        ...syntaxPlugins,
+        [
+          pluginPath,
+          {
+            excludeImportsFromModules: ["ignore-me"]
+          }
+        ]
+      ]
+    });
+
+    assert.equal(normalize(code), normalize(output));
   });
 });
