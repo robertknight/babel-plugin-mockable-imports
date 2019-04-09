@@ -5,13 +5,27 @@ class MockingError extends Error {
 }
 
 class ImportMap {
-  constructor(imports) {
+  constructor(imports = {}) {
     /**
      * A mapping of import local name (or alias) to metadata about where
      * the import came from.
      */
     this.$meta = imports;
     this.$restore();
+  }
+
+  /**
+   * Register an import.
+   *
+   * The `value` of the import will become available as a property named
+   * `alias` on this instance.
+   */
+  $add(alias, source, symbol, value) {
+    if (isSpecialMethod(alias)) {
+      return;
+    }
+    this.$meta[alias] = [source, symbol, value];
+    this[alias] = value;
   }
 
   /**
@@ -81,9 +95,8 @@ class ImportMap {
    * This function does nothing if called when no mocks are active.
    */
   $restore() {
-    const proto = Object.getPrototypeOf(this);
     Object.keys(this.$meta).forEach(alias => {
-      if (proto.hasOwnProperty(alias)) {
+      if (isSpecialMethod(alias)) {
         // Skip imports which conflict with special methods.
         return;
       }
@@ -91,6 +104,10 @@ class ImportMap {
       this[alias] = value;
     });
   }
+}
+
+function isSpecialMethod(name) {
+  return ImportMap.prototype.hasOwnProperty(name);
 }
 
 module.exports = {

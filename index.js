@@ -34,12 +34,27 @@ module.exports = ({types: t}) => {
   }
 
   /**
+   * Create an `$imports.$add(alias, source, symbol, value)` method call.
+   */
+  function createAddImportCall(alias, source, symbol, value) {
+    return t.callExpression(
+      t.memberExpression(t.identifier('$imports'), t.identifier('$add')),
+      [
+        t.stringLiteral(alias),
+        t.stringLiteral(source),
+        t.stringLiteral(symbol),
+        value,
+      ],
+    );
+  }
+
+  /**
    * Return true if imports from the module `source` should not be made
    * mockable.
    */
   function excludeImportsFromModule(source, state) {
     const excludeList = state.opts.excludeImportsFromModules || EXCLUDE_LIST;
-    return excludeList.includes(source);
+    return source === helperImportPath || excludeList.includes(source);
   }
 
   /**
@@ -120,25 +135,10 @@ module.exports = ({types: t}) => {
             t.stringLiteral(helperImportPath),
           );
 
-          // Generate `export const $imports = new ImportMap(...)`
-          const importMetaObjLiteral = t.objectExpression(
-            [...state.importMeta.entries()].map(([localIdent, meta]) =>
-              t.objectProperty(
-                t.identifier(localIdent.name),
-                t.arrayExpression([
-                  t.stringLiteral(meta.source),
-                  t.stringLiteral(meta.symbol),
-                  meta.value,
-                ]),
-              ),
-            ),
-          );
           const $importsDecl = t.variableDeclaration('const', [
             t.variableDeclarator(
               t.identifier('$imports'),
-              t.newExpression(t.identifier('ImportMap'), [
-                importMetaObjLiteral,
-              ]),
+              t.newExpression(t.identifier('ImportMap'), []),
             ),
           ]);
 
@@ -149,15 +149,16 @@ module.exports = ({types: t}) => {
             ),
           ]);
 
+          const body = path.get('body');
+
           // Insert `$imports` declaration below last import.
-          const insertedNodes = state.lastImport.insertAfter(helperImport);
+          const insertedNodes = body[0].insertAfter(helperImport);
           insertedNodes[0].insertAfter($importsDecl);
 
           // Insert `export { $imports }` at the end of the file. The reason for
           // inserting here is that this gets converted to `exports.$imports =
           // $imports` if the file is later transpiled to CommonJS, and this
           // must come after any `module.exports = <value>` assignments.
-          const body = path.get('body');
           body[body.length - 1].insertAfter(exportImportsDecl);
 
           // If the module contains a `module.exports = <foo>` expression then
@@ -190,6 +191,10 @@ module.exports = ({types: t}) => {
       },
 
       CallExpression(path, state) {
+        if (state.aborted) {
+          return;
+        }
+
         const node = path.node;
         const source = commomJSRequireSource(node);
         if (!source) {
@@ -224,24 +229,42 @@ module.exports = ({types: t}) => {
           return;
         }
 
-        state.lastImport = varDecl.findParent(p => p.isVariableDeclaration());
+        // TODO - Code such as `var { foo } = require("bar")` may get
+        // transformed to `var _bar = require("bar"), foo = _bar.foo`.
+        //
+        // In this case we need to ensure that `foo` is registered as an import
+        // and references to it later in the file are replaced with `$imports.foo`.
+
+        const varDeclStatement = varDecl.findParent(p =>
+          p.isVariableDeclaration(),
+        );
+        state.lastImport = varDeclStatement;
 
         // `var aModule = require("a-module")`
         const id = varDecl.node.id;
         if (id.type === 'Identifier') {
+          const symbol = '<CJS>';
           state.importMeta.set(id, {
-            symbol: '<CJS>',
+            symbol,
             source,
             value: id,
           });
+          varDeclStatement.insertAfter(
+            createAddImportCall(id.name, source, symbol, id),
+          );
         } else if (id.type === 'ObjectPattern') {
           // `var { aSymbol: localName } = require("a-module")`
           for (let property of id.properties) {
-            state.importMeta.set(property.value, {
-              symbol: property.key.name,
-              source,
-              value: property.value,
-            });
+            if (!t.isIdentifier(property.value)) {
+              // Ignore destructuring more complex than a rename.
+              continue;
+            }
+            const symbol = property.key.name;
+            const value = property.value;
+            state.importMeta.set(property.value, {symbol, source, value});
+            varDeclStatement.insertAfter(
+              createAddImportCall(property.value.name, source, symbol, value),
+            );
           }
         }
       },
@@ -288,6 +311,10 @@ module.exports = ({types: t}) => {
             source,
             value: spec.local,
           });
+
+          path.insertAfter(
+            createAddImportCall(spec.local.name, source, imported, spec.local),
+          );
         });
       },
 
@@ -302,13 +329,15 @@ module.exports = ({types: t}) => {
           return;
         }
 
-        // Ignore the reference in the generated `$imports` variable declaration.
-        const varDeclParent = child.findParent(p => p.isVariableDeclarator());
+        // Ignore the reference in generated `$imports.$add` calls.
+        const callExprParent = child.findParent(p => p.isCallExpression());
+        const callee = callExprParent && callExprParent.node.callee;
         if (
-          varDeclParent &&
-          varDeclParent.node.id.type === 'Identifier' &&
-          varDeclParent.node.id.name === '$imports'
-        ) {
+          callee &&
+          t.isMemberExpression(callee) &&
+          t.isIdentifier(callee.object) &&
+          callee.object.name === '$imports' &&
+          callee.property.name === '$add') {
           return;
         }
 
