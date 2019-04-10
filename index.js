@@ -372,4 +372,3 @@ module.exports = ({types: t}) => {
     },
   };
 };
-('use strict');
