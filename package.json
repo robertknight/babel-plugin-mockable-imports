@@ -1,6 +1,6 @@
 {
   "name": "babel-plugin-mockable-imports",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Babel plugin for mocking ES imports",
   "main": "index.js",
   "scripts": {
