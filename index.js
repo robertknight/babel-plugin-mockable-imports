@@ -34,12 +34,26 @@ module.exports = ({types: t}) => {
   }
 
   /**
+   * Create an `$imports.$add(alias, source, symbol, value)` method call.
+   */
+  function createAddImportCall(alias, source, symbol, value) {
+    return t.callExpression(
+      t.memberExpression(t.identifier('$imports'), t.identifier('$add')),
+      [
+        t.stringLiteral(alias),
+        t.stringLiteral(source),
+        t.stringLiteral(symbol),
+        value,
+      ],
+    );
+  }
+
+  /**
    * Return true if imports from the module `source` should not be made
    * mockable.
    */
-  function excludeImportsFromModule(source, state) {
-    const excludeList = state.opts.excludeImportsFromModules || EXCLUDE_LIST;
-    return excludeList.includes(source);
+  function excludeImportsFrom(source, excludeList = EXCLUDE_LIST) {
+    return source === helperImportPath || excludeList.includes(source);
   }
 
   /**
@@ -78,6 +92,60 @@ module.exports = ({types: t}) => {
       return node;
     }
   }
+
+  // Visitor which collects information about CommonJS imports in a variable
+  // declaration and populates `state.imports`.
+  const collectCommonJSImports = {
+    VariableDeclarator(path, {excludeImportsFromModules, imports}) {
+      // If the `require` is wrapped in some way, we just ignore it, since
+      // we cannot determine which symbols are being required without knowing
+      // what the wrapping expression does.
+      //
+      // An exception is made where the `require` statement is wrapped in
+      // a sequence (`var foo = (..., require('blah'))`) as some code coverage
+      // transforms do. We know in this case that the result will be the
+      // result of the require.
+      const init = lastExprInSequence(path.node.init);
+      if (!t.isCallExpression(init)) {
+        return;
+      }
+      const source = commomJSRequireSource(init);
+      if (!source) {
+        return;
+      }
+
+      if (excludeImportsFrom(source, excludeImportsFromModules)) {
+        return;
+      }
+
+      const id = path.node.id;
+      if (id.type === 'Identifier') {
+        const symbol = '<CJS>';
+        imports.push({
+          alias: id.name,
+          symbol,
+          source,
+          value: id,
+        });
+      } else if (id.type === 'ObjectPattern') {
+        // `var { aSymbol: localName } = require("a-module")`
+        for (let property of id.properties) {
+          if (!t.isIdentifier(property.value)) {
+            // Ignore destructuring more complex than a rename.
+            continue;
+          }
+          const symbol = property.key.name;
+          const value = property.value;
+          imports.push({
+            alias: property.value.name,
+            source,
+            symbol,
+            value,
+          });
+        }
+      }
+    },
+  };
 
   return {
     visitor: {
@@ -120,25 +188,10 @@ module.exports = ({types: t}) => {
             t.stringLiteral(helperImportPath),
           );
 
-          // Generate `export const $imports = new ImportMap(...)`
-          const importMetaObjLiteral = t.objectExpression(
-            [...state.importMeta.entries()].map(([localIdent, meta]) =>
-              t.objectProperty(
-                t.identifier(localIdent.name),
-                t.arrayExpression([
-                  t.stringLiteral(meta.source),
-                  t.stringLiteral(meta.symbol),
-                  meta.value,
-                ]),
-              ),
-            ),
-          );
           const $importsDecl = t.variableDeclaration('const', [
             t.variableDeclarator(
               t.identifier('$imports'),
-              t.newExpression(t.identifier('ImportMap'), [
-                importMetaObjLiteral,
-              ]),
+              t.newExpression(t.identifier('ImportMap'), []),
             ),
           ]);
 
@@ -149,15 +202,16 @@ module.exports = ({types: t}) => {
             ),
           ]);
 
+          const body = path.get('body');
+
           // Insert `$imports` declaration below last import.
-          const insertedNodes = state.lastImport.insertAfter(helperImport);
+          const insertedNodes = body[0].insertAfter(helperImport);
           insertedNodes[0].insertAfter($importsDecl);
 
           // Insert `export { $imports }` at the end of the file. The reason for
           // inserting here is that this gets converted to `exports.$imports =
           // $imports` if the file is later transpiled to CommonJS, and this
           // must come after any `module.exports = <value>` assignments.
-          const body = path.get('body');
           body[body.length - 1].insertAfter(exportImportsDecl);
 
           // If the module contains a `module.exports = <foo>` expression then
@@ -189,61 +243,33 @@ module.exports = ({types: t}) => {
         state.hasCommonJSExportAssignment = true;
       },
 
-      CallExpression(path, state) {
-        const node = path.node;
-        const source = commomJSRequireSource(node);
-        if (!source) {
+      VariableDeclaration(path, state) {
+        if (state.aborted) {
           return;
         }
 
-        if (excludeImportsFromModule(source, state)) {
+        // Ignore non-top level CommonJS imports.
+        if (path.parent.type !== 'Program') {
           return;
         }
 
-        // Ignore requires that are not part of the initializer of a
-        // `var init = require("module")` statement.
-        const varDecl = path.findParent(p => p.isVariableDeclarator());
-        if (!varDecl) {
-          return;
-        }
+        // Find CommonJS (`require(...)`) imports in variable declarations.
+        const imports = [];
+        const {excludeImportsFromModules} = state.opts;
+        path.traverse(collectCommonJSImports, {
+          excludeImportsFromModules,
+          imports,
+        });
 
-        // If the `require` is wrapped in some way, we just ignore it, since
-        // we cannot determine which symbols are being required without knowing
-        // what the wrapping expression does.
-        //
-        // An exception is made where the `require` statement is wrapped in
-        // a sequence (`var foo = (..., require('blah'))`) as some code coverage
-        // transforms do. We know in this case that the result will be the
-        // result of the require.
-        if (lastExprInSequence(varDecl.node.init) !== node) {
-          return;
-        }
-
-        // Ignore non-top level require expressions.
-        if (varDecl.parentPath.parent.type !== 'Program') {
-          return;
-        }
-
-        state.lastImport = varDecl.findParent(p => p.isVariableDeclaration());
-
-        // `var aModule = require("a-module")`
-        const id = varDecl.node.id;
-        if (id.type === 'Identifier') {
-          state.importMeta.set(id, {
-            symbol: '<CJS>',
+        // Register all found imports.
+        imports.forEach(({alias, source, symbol, value}) => {
+          state.importMeta.set(value, {
+            symbol,
             source,
-            value: id,
+            value,
           });
-        } else if (id.type === 'ObjectPattern') {
-          // `var { aSymbol: localName } = require("a-module")`
-          for (let property of id.properties) {
-            state.importMeta.set(property.value, {
-              symbol: property.key.name,
-              source,
-              value: property.value,
-            });
-          }
-        }
+          path.insertAfter(createAddImportCall(alias, source, symbol, value));
+        });
       },
 
       ImportDeclaration(path, state) {
@@ -279,7 +305,7 @@ module.exports = ({types: t}) => {
           }
 
           const source = path.node.source.value;
-          if (excludeImportsFromModule(source, state)) {
+          if (excludeImportsFrom(source, state.excludeImportsFromModules)) {
             return;
           }
 
@@ -288,6 +314,10 @@ module.exports = ({types: t}) => {
             source,
             value: spec.local,
           });
+
+          path.insertAfter(
+            createAddImportCall(spec.local.name, source, imported, spec.local),
+          );
         });
       },
 
@@ -302,12 +332,15 @@ module.exports = ({types: t}) => {
           return;
         }
 
-        // Ignore the reference in the generated `$imports` variable declaration.
-        const varDeclParent = child.findParent(p => p.isVariableDeclarator());
+        // Ignore the reference in generated `$imports.$add` calls.
+        const callExprParent = child.findParent(p => p.isCallExpression());
+        const callee = callExprParent && callExprParent.node.callee;
         if (
-          varDeclParent &&
-          varDeclParent.node.id.type === 'Identifier' &&
-          varDeclParent.node.id.name === '$imports'
+          callee &&
+          t.isMemberExpression(callee) &&
+          t.isIdentifier(callee.object) &&
+          callee.object.name === '$imports' &&
+          callee.property.name === '$add'
         ) {
           return;
         }
@@ -343,4 +376,3 @@ module.exports = ({types: t}) => {
     },
   };
 };
-('use strict');

@@ -10,6 +10,17 @@ const $imports = new ImportMap(${init});
 `.trim();
 }
 
+function importHelper() {
+  return `
+import { ImportMap } from "babel-plugin-mockable-imports/lib/helpers";
+const $imports = new ImportMap();
+`.trim();
+}
+
+function importAdd(alias, source, symbol = alias, value = alias) {
+  return `$imports.$add("${alias}", "${source}", "${symbol}", ${value})`;
+}
+
 function trailer() {
   return "export { $imports };";
 }
@@ -23,9 +34,8 @@ ident();
 `,
     output: `
 import { ident } from 'a-module';
-${importsDecl(`{
-  ident: ["a-module", "ident", ident]
-}`)}
+${importHelper()}
+${importAdd("ident", "a-module")}
 $imports.ident();
 ${trailer()}
 `
@@ -38,9 +48,8 @@ ident();
 `,
     output: `
 import ident from 'a-module';
-${importsDecl(`{
-  ident: ["a-module", "default", ident]
-}`)}
+${importHelper()}
+${importAdd("ident", "a-module", "default")}
 $imports.ident();
 ${trailer()}
 `
@@ -53,9 +62,8 @@ aModule.ident();
 `,
     output: `
 import * as aModule from 'a-module';
-${importsDecl(`{
-  aModule: ["a-module", "*", aModule]
-}`)}
+${importHelper()}
+${importAdd("aModule", "a-module", "*")}
 $imports.aModule.ident();
 ${trailer()}
 `
@@ -84,9 +92,8 @@ function MyComponent() {
 }`,
     output: `
 import Widget from './Widget';
-${importsDecl(`{
-  Widget: ["./Widget", "default", Widget]
-}`)}
+${importHelper()}
+${importAdd("Widget", "./Widget", "default")}
 
 function MyComponent() {
   return <$imports.Widget arg="value" />;
@@ -111,9 +118,8 @@ import { foo } from 'a-module';
 export { foo }`,
     output: `
 import { foo } from 'a-module';
-${importsDecl(`{
-  foo: ["a-module", "foo", foo]
-}`)}
+${importHelper()}
+${importAdd("foo", "a-module")}
 export { foo };
 ${trailer()}
 `
@@ -128,9 +134,8 @@ function MyComponent() {
 }`,
     output: `
 import * as widgets from './widgets';
-${importsDecl(`{
-  widgets: ["./widgets", "*", widgets]
-}`)}
+${importHelper()}
+${importAdd("widgets", "./widgets", "*")}
 
 function MyComponent() {
   return <$imports.widgets.Widget />;
@@ -148,9 +153,8 @@ foo();
     output: `
 var foo = require('./foo');
 
-${importsDecl(`{
-  foo: ["./foo", "<CJS>", foo]
-}`)}
+${importHelper()}
+${importAdd("foo", "./foo", "<CJS>")}
 $imports.foo();
 ${trailer()}
 `
@@ -166,9 +170,8 @@ var {
   foo
 } = require('./foo');
 
-${importsDecl(`{
-  foo: ["./foo", "foo", foo]
-}`)}
+${importHelper()}
+${importAdd("foo", "./foo")}
 $imports.foo();
 ${trailer()}
 `
@@ -184,9 +187,8 @@ var {
   bar: foo
 } = require('./foo');
 
-${importsDecl(`{
-  foo: ["./foo", "bar", foo]
-}`)}
+${importHelper()}
+${importAdd("foo", "./foo", "bar")}
 $imports.foo();
 ${trailer()}
 `
@@ -213,9 +215,8 @@ module.exports = bar;
     output: `
 var foo = require('./foo');
 
-${importsDecl(`{
-  foo: ["./foo", "<CJS>", foo]
-}`)}
+${importHelper()}
+${importAdd("foo", "./foo", "<CJS>")}
 
 function bar() {
   $imports.foo();
@@ -227,18 +228,34 @@ ${trailer()}
 `
   },
   {
-    description: "commom JS import wrapped in sequence",
+    description: "common JS import wrapped in sequence",
     code: `
 var foo = (true, require('./foo'));
 foo();
 `,
     output: `
 var foo = (true, require('./foo'));
-${importsDecl(`{
-  foo: ["./foo", "<CJS>", foo]
-}`)}
+${importHelper()}
+${importAdd("foo", "./foo", "<CJS>")}
 $imports.foo();
 ${trailer()}`
+  },
+  {
+    description: "common JS import with destructuring transform",
+    code: `
+var { foo } = require("./foo");
+foo();
+`,
+    output: `
+var _require = require("./foo"),
+    foo = _require.foo;
+
+${importHelper()}
+${importAdd("_require", "./foo", "<CJS>")}
+${importAdd("foo", "./foo")}
+$imports.foo();
+${trailer()}`,
+    plugins: ["@babel/plugin-transform-destructuring"]
   }
 ];
 
@@ -254,9 +271,11 @@ function normalize(code) {
 }
 
 describe("plugin", () => {
-  fixtures.forEach(({ description, code, output }) => {
+  fixtures.forEach(({ description, code, output, plugins = [] }) => {
     it(`generates expected code for ${description}`, () => {
-      const { code: actualOutput } = transform(code, options);
+      const options_ = { ...options };
+      options_.plugins = [...options_.plugins, ...plugins];
+      const { code: actualOutput } = transform(code, options_);
       assert.equal(actualOutput.trim(), output.trim());
     });
   });

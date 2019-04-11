@@ -27,6 +27,23 @@ describe("helpers", () => {
       assert.equal(map.$restore, ImportMap.prototype.$restore);
     });
 
+    describe("$add", () => {
+      it("adds a new property to the instance", () => {
+        const map = new ImportMap();
+        map.$add("foo", "./bar", "foo", 42);
+        assert.equal(map.foo, 42);
+        assert.deepEqual(map.$meta.foo, ["./bar", "foo", 42]);
+      });
+
+      ["$mock", "$restore", "$add"].forEach(method => {
+        it(`does not add a new property if the name is ${method}`, () => {
+          const map = new ImportMap();
+          map.$add(method, "./bar", "foo", 42);
+          assert.notEqual(map[method], 42);
+        });
+      });
+    });
+
     describe("$mock", () => {
       it("replaces all matching aliases with mock values", () => {
         const map = new ImportMap({
