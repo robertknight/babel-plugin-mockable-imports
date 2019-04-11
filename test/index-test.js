@@ -256,6 +256,18 @@ ${importAdd("foo", "./foo")}
 $imports.foo();
 ${trailer()}`,
     plugins: ["@babel/plugin-transform-destructuring"]
+  },
+  {
+    description: "common JS import with separate var decl and initialization",
+    code: `var foo; foo = require("./foo"); foo()`,
+    output: `
+var foo;
+${importHelper()}
+foo = require("./foo");
+${importAdd("foo", "./foo", "<CJS>")};
+$imports.foo();
+${trailer()}
+`
   }
 ];
 
