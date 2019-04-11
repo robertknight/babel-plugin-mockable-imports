@@ -240,6 +240,14 @@ particular proxyquire:
    that maintains global state is evaluated multiple times, or objects from
    different copies of the module come into contact with one another.
  - Is tied to Node and Browserify
+ - Works only with `require` calls, rather than handling `import` declarations
+   "natively". This can cause issues such as Babel's transformation of `import`
+   breaking proxyquireify's ability to recognize `proxyquire` calls.
+
+Additionally because this plugin adds metadata to modules about their imports,
+it can provide helpful warnings at runtime if a mock is provided which doesn't
+match the imported symbols, eg. due to an unnecessary mock or a typo in the
+module path or symbol name.
 
 There is another Babel plugin,
 [babel-plugin-rewire](https://github.com/speedskater/babel-plugin-rewire) which
