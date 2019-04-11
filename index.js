@@ -155,11 +155,9 @@ module.exports = ({types: t}) => {
         enter(path, state) {
           // Set of local identifiers which refer to an import.
           state.importIdentifiers = new Set();
-          // Keep track of whether modifying this file has been aborted.
-          // TODO - It should be possible to make use of `path.stop()` and avoid
-          // needing to do this. This currently results in processing of the
-          // file by other plugins stopping though it seems. Perhaps need to
-          // create an innert path and use that?
+
+          // Flag to keep track of whether further processing of this file has
+          // stopped.
           state.aborted = excludeModule(state);
 
           // Set to `true` if a `module.exports = <expr>` expression was seen
