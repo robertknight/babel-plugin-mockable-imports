@@ -228,7 +228,7 @@ ${trailer()}
 `
   },
   {
-    description: "commom JS import wrapped in sequence",
+    description: "common JS import wrapped in sequence",
     code: `
 var foo = (true, require('./foo'));
 foo();
@@ -239,6 +239,23 @@ ${importHelper()}
 ${importAdd("foo", "./foo", "<CJS>")}
 $imports.foo();
 ${trailer()}`
+  },
+  {
+    description: "common JS import with destructuring transform",
+    code: `
+var { foo } = require("./foo");
+foo();
+`,
+    output: `
+var _require = require("./foo"),
+    foo = _require.foo;
+
+${importHelper()}
+${importAdd("_require", "./foo", "<CJS>")}
+${importAdd("foo", "./foo")}
+$imports.foo();
+${trailer()}`,
+    plugins: ["@babel/plugin-transform-destructuring"]
   }
 ];
 
@@ -254,9 +271,11 @@ function normalize(code) {
 }
 
 describe("plugin", () => {
-  fixtures.forEach(({ description, code, output }) => {
+  fixtures.forEach(({ description, code, output, plugins = [] }) => {
     it(`generates expected code for ${description}`, () => {
-      const { code: actualOutput } = transform(code, options);
+      const options_ = { ...options };
+      options_.plugins = [...options_.plugins, ...plugins];
+      const { code: actualOutput } = transform(code, options_);
       assert.equal(actualOutput.trim(), output.trim());
     });
   });

@@ -52,8 +52,7 @@ module.exports = ({types: t}) => {
    * Return true if imports from the module `source` should not be made
    * mockable.
    */
-  function excludeImportsFromModule(source, state) {
-    const excludeList = state.opts.excludeImportsFromModules || EXCLUDE_LIST;
+  function excludeImportsFrom(source, excludeList = EXCLUDE_LIST) {
     return source === helperImportPath || excludeList.includes(source);
   }
 
@@ -93,6 +92,60 @@ module.exports = ({types: t}) => {
       return node;
     }
   }
+
+  // Visitor which collects information about CommonJS imports in a variable
+  // declaration and populates `state.imports`.
+  const collectCommonJSImports = {
+    VariableDeclarator(path, {excludeImportsFromModules, imports}) {
+      // If the `require` is wrapped in some way, we just ignore it, since
+      // we cannot determine which symbols are being required without knowing
+      // what the wrapping expression does.
+      //
+      // An exception is made where the `require` statement is wrapped in
+      // a sequence (`var foo = (..., require('blah'))`) as some code coverage
+      // transforms do. We know in this case that the result will be the
+      // result of the require.
+      const init = lastExprInSequence(path.node.init);
+      if (!t.isCallExpression(init)) {
+        return;
+      }
+      const source = commomJSRequireSource(init);
+      if (!source) {
+        return;
+      }
+
+      if (excludeImportsFrom(source, excludeImportsFromModules)) {
+        return;
+      }
+
+      const id = path.node.id;
+      if (id.type === 'Identifier') {
+        const symbol = '<CJS>';
+        imports.push({
+          alias: id.name,
+          symbol,
+          source,
+          value: id,
+        });
+      } else if (id.type === 'ObjectPattern') {
+        // `var { aSymbol: localName } = require("a-module")`
+        for (let property of id.properties) {
+          if (!t.isIdentifier(property.value)) {
+            // Ignore destructuring more complex than a rename.
+            continue;
+          }
+          const symbol = property.key.name;
+          const value = property.value;
+          imports.push({
+            alias: property.value.name,
+            source,
+            symbol,
+            value,
+          });
+        }
+      }
+    },
+  };
 
   return {
     visitor: {
@@ -190,83 +243,33 @@ module.exports = ({types: t}) => {
         state.hasCommonJSExportAssignment = true;
       },
 
-      CallExpression(path, state) {
+      VariableDeclaration(path, state) {
         if (state.aborted) {
           return;
         }
 
-        const node = path.node;
-        const source = commomJSRequireSource(node);
-        if (!source) {
+        // Ignore non-top level CommonJS imports.
+        if (path.parent.type !== 'Program') {
           return;
         }
 
-        if (excludeImportsFromModule(source, state)) {
-          return;
-        }
+        // Find CommonJS (`require(...)`) imports in variable declarations.
+        const imports = [];
+        const {excludeImportsFromModules} = state.opts;
+        path.traverse(collectCommonJSImports, {
+          excludeImportsFromModules,
+          imports,
+        });
 
-        // Ignore requires that are not part of the initializer of a
-        // `var init = require("module")` statement.
-        const varDecl = path.findParent(p => p.isVariableDeclarator());
-        if (!varDecl) {
-          return;
-        }
-
-        // If the `require` is wrapped in some way, we just ignore it, since
-        // we cannot determine which symbols are being required without knowing
-        // what the wrapping expression does.
-        //
-        // An exception is made where the `require` statement is wrapped in
-        // a sequence (`var foo = (..., require('blah'))`) as some code coverage
-        // transforms do. We know in this case that the result will be the
-        // result of the require.
-        if (lastExprInSequence(varDecl.node.init) !== node) {
-          return;
-        }
-
-        // Ignore non-top level require expressions.
-        if (varDecl.parentPath.parent.type !== 'Program') {
-          return;
-        }
-
-        // TODO - Code such as `var { foo } = require("bar")` may get
-        // transformed to `var _bar = require("bar"), foo = _bar.foo`.
-        //
-        // In this case we need to ensure that `foo` is registered as an import
-        // and references to it later in the file are replaced with `$imports.foo`.
-
-        const varDeclStatement = varDecl.findParent(p =>
-          p.isVariableDeclaration(),
-        );
-        state.lastImport = varDeclStatement;
-
-        // `var aModule = require("a-module")`
-        const id = varDecl.node.id;
-        if (id.type === 'Identifier') {
-          const symbol = '<CJS>';
-          state.importMeta.set(id, {
+        // Register all found imports.
+        imports.forEach(({alias, source, symbol, value}) => {
+          state.importMeta.set(value, {
             symbol,
             source,
-            value: id,
+            value,
           });
-          varDeclStatement.insertAfter(
-            createAddImportCall(id.name, source, symbol, id),
-          );
-        } else if (id.type === 'ObjectPattern') {
-          // `var { aSymbol: localName } = require("a-module")`
-          for (let property of id.properties) {
-            if (!t.isIdentifier(property.value)) {
-              // Ignore destructuring more complex than a rename.
-              continue;
-            }
-            const symbol = property.key.name;
-            const value = property.value;
-            state.importMeta.set(property.value, {symbol, source, value});
-            varDeclStatement.insertAfter(
-              createAddImportCall(property.value.name, source, symbol, value),
-            );
-          }
-        }
+          path.insertAfter(createAddImportCall(alias, source, symbol, value));
+        });
       },
 
       ImportDeclaration(path, state) {
@@ -302,7 +305,7 @@ module.exports = ({types: t}) => {
           }
 
           const source = path.node.source.value;
-          if (excludeImportsFromModule(source, state)) {
+          if (excludeImportsFrom(source, state.excludeImportsFromModules)) {
             return;
           }
 
@@ -337,7 +340,8 @@ module.exports = ({types: t}) => {
           t.isMemberExpression(callee) &&
           t.isIdentifier(callee.object) &&
           callee.object.name === '$imports' &&
-          callee.property.name === '$add') {
+          callee.property.name === '$add'
+        ) {
           return;
         }
 
