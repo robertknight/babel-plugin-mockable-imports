@@ -5,6 +5,9 @@ const pathModule = require('path');
 const packageName = require('./package.json').name;
 const helperImportPath = `${packageName}/lib/helpers`;
 
+/**
+ * Default list of modules whose imports are excluded from processing.
+ */
 const EXCLUDE_LIST = [
   // Proxyquirify and proxyquire-universal are two popular mocking libraries
   // which include Browserify plugins that look for references to their imports
@@ -13,6 +16,13 @@ const EXCLUDE_LIST = [
   'proxyquire',
 ];
 
+/**
+ * Default list of directories that are excluded from the transforms applied
+ * by this plugin.
+ *
+ * The default list includes common names of test directories, because there
+ * is no point in making imports in test modules mockable.
+ */
 const EXCLUDED_DIRS = ['test', '__tests__'];
 
 module.exports = ({types: t}) => {
@@ -72,6 +82,9 @@ module.exports = ({types: t}) => {
     return dirParts.some(part => excludeList.includes(part));
   }
 
+  /**
+   * Return true if node is a `module.exports = <expression>` assignment.
+   */
   function isCommonJSExportAssignment(path) {
     const assignExpr = path.node;
     if (t.isMemberExpression(assignExpr.left)) {
@@ -231,6 +244,7 @@ module.exports = ({types: t}) => {
         },
       },
 
+      // Check for and register CommonJS imports in top-level variable assignments.
       AssignmentExpression(path, state) {
         if (state.aborted) {
           return false;
@@ -282,6 +296,7 @@ module.exports = ({types: t}) => {
         );
       },
 
+      // Check for and register CommonJS imports in top-level variable declarations.
       VariableDeclaration(path, state) {
         if (state.aborted) {
           return;
@@ -307,6 +322,7 @@ module.exports = ({types: t}) => {
         });
       },
 
+      // Register ES6 imports.
       ImportDeclaration(path, state) {
         if (state.aborted) {
           return;
@@ -350,11 +366,15 @@ module.exports = ({types: t}) => {
         });
       },
 
+      // Replace references to identifiers with `$imports.<identifier>`
+      // expressions which resolve either to the original import or the active
+      // mocks.
       ReferencedIdentifier(child, state) {
         if (state.aborted) {
           return;
         }
 
+        // Check if this a reference to an import.
         const name = child.node.name;
         const binding = child.scope.getBinding(name, /* noGlobal */ true);
         if (!binding || !state.importIdentifiers.has(binding.identifier)) {
