@@ -5,6 +5,9 @@ const pathModule = require('path');
 const packageName = require('./package.json').name;
 const helperImportPath = `${packageName}/lib/helpers`;
 
+/**
+ * Default list of modules whose imports are excluded from processing.
+ */
 const EXCLUDE_LIST = [
   // Proxyquirify and proxyquire-universal are two popular mocking libraries
   // which include Browserify plugins that look for references to their imports
@@ -13,6 +16,13 @@ const EXCLUDE_LIST = [
   'proxyquire',
 ];
 
+/**
+ * Default list of directories that are excluded from the transforms applied
+ * by this plugin.
+ *
+ * The default list includes common names of test directories, because there
+ * is no point in making imports in test modules mockable.
+ */
 const EXCLUDED_DIRS = ['test', '__tests__'];
 
 module.exports = ({types: t}) => {
@@ -72,6 +82,9 @@ module.exports = ({types: t}) => {
     return dirParts.some(part => excludeList.includes(part));
   }
 
+  /**
+   * Return true if node is a `module.exports = <expression>` assignment.
+   */
   function isCommonJSExportAssignment(path) {
     const assignExpr = path.node;
     if (t.isMemberExpression(assignExpr.left)) {
@@ -153,16 +166,11 @@ module.exports = ({types: t}) => {
         // Initialize state variables that get updated as imports and references
         // to those imports are found.
         enter(path, state) {
-          // Map of local identifier for import => import info.
-          state.importMeta = new Map();
-          // The last `import` or top-level CommonJS require node that was
-          // seen in the code.
-          state.lastImport = null;
-          // Keep track of whether modifying this file has been aborted.
-          // TODO - It should be possible to make use of `path.stop()` and avoid
-          // needing to do this. This currently results in processing of the
-          // file by other plugins stopping though it seems. Perhaps need to
-          // create an innert path and use that?
+          // Set of local identifiers which refer to an import.
+          state.importIdentifiers = new Set();
+
+          // Flag to keep track of whether further processing of this file has
+          // stopped.
           state.aborted = excludeModule(state);
 
           // Set to `true` if a `module.exports = <expr>` expression was seen
@@ -173,7 +181,7 @@ module.exports = ({types: t}) => {
         // Emit the code that generates the `$imports` object used by tests to
         // mock dependencies.
         exit(path, state) {
-          if (state.aborted || state.importMeta.size === 0) {
+          if (state.aborted || state.importIdentifiers.size === 0) {
             return;
           }
 
@@ -236,6 +244,7 @@ module.exports = ({types: t}) => {
         },
       },
 
+      // Check for and register CommonJS imports in top-level variable assignments.
       AssignmentExpression(path, state) {
         if (state.aborted) {
           return false;
@@ -278,11 +287,7 @@ module.exports = ({types: t}) => {
         // when looking up the binding when processing later references to the
         // identifier, the binding will refer back to the `var` declaration,
         // not the assignment.
-        state.importMeta.set(binding.identifier, {
-          symbol: '<CJS>',
-          source,
-          value: binding.identifier,
-        });
+        state.importIdentifiers.add(binding.identifier);
 
         // The actual import registration via `$imports.$add` however needs to
         // be placed after the assignment.
@@ -291,6 +296,7 @@ module.exports = ({types: t}) => {
         );
       },
 
+      // Check for and register CommonJS imports in top-level variable declarations.
       VariableDeclaration(path, state) {
         if (state.aborted) {
           return;
@@ -311,21 +317,17 @@ module.exports = ({types: t}) => {
 
         // Register all found imports.
         imports.forEach(({alias, source, symbol, value}) => {
-          state.importMeta.set(value, {
-            symbol,
-            source,
-            value,
-          });
+          state.importIdentifiers.add(value);
           path.insertAfter(createAddImportCall(alias, source, symbol, value));
         });
       },
 
+      // Register ES6 imports.
       ImportDeclaration(path, state) {
         if (state.aborted) {
           return;
         }
-        // Process import and add metadata to `state.importMeta` map.
-        state.lastImport = path;
+        // Process import and add metadata to `state.importIdentifiers` map.
         path.node.specifiers.forEach(spec => {
           if (spec.local.name === '$imports') {
             // Abort processing the file if it declares an import called
@@ -357,26 +359,25 @@ module.exports = ({types: t}) => {
             return;
           }
 
-          state.importMeta.set(spec.local, {
-            symbol: imported,
-            source,
-            value: spec.local,
-          });
-
+          state.importIdentifiers.add(spec.local);
           path.insertAfter(
             createAddImportCall(spec.local.name, source, imported, spec.local),
           );
         });
       },
 
+      // Replace references to identifiers with `$imports.<identifier>`
+      // expressions which resolve either to the original import or the active
+      // mocks.
       ReferencedIdentifier(child, state) {
         if (state.aborted) {
           return;
         }
 
+        // Check if this a reference to an import.
         const name = child.node.name;
         const binding = child.scope.getBinding(name, /* noGlobal */ true);
-        if (!binding || !state.importMeta.has(binding.identifier)) {
+        if (!binding || !state.importIdentifiers.has(binding.identifier)) {
           return;
         }
 

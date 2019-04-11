@@ -4,6 +4,14 @@ class MockingError extends Error {
   }
 }
 
+/**
+ * Object exposed by modules that have been processed by this plugin.
+ *
+ * The processed modules create an instance of `ImportMap` and register
+ * mockable imports using `$add`. Test modules import the `ImportMap` from
+ * the module under test and call `$mock` and `$restore` methods to mock
+ * dependencies.
+ */
 class ImportMap {
   constructor(imports = {}) {
     /**
