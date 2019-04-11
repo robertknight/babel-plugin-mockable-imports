@@ -20,7 +20,7 @@ module.exports = ({types: t}) => {
    * Return the required module from a CallExpression, if it is a `require(...)`
    * call.
    */
-  function commomJSRequireSource(node) {
+  function commonJSRequireSource(node) {
     const args = node.arguments;
     if (
       node.callee.name === 'require' &&
@@ -109,7 +109,7 @@ module.exports = ({types: t}) => {
       if (!t.isCallExpression(init)) {
         return;
       }
-      const source = commomJSRequireSource(init);
+      const source = commonJSRequireSource(init);
       if (!source) {
         return;
       }
@@ -237,10 +237,58 @@ module.exports = ({types: t}) => {
       },
 
       AssignmentExpression(path, state) {
-        if (!isCommonJSExportAssignment(path)) {
+        if (state.aborted) {
+          return false;
+        }
+
+        // Skip assignments that are not at the top level.
+        if (path.parentPath.parent.type !== 'Program') {
           return;
         }
-        state.hasCommonJSExportAssignment = true;
+
+        // Track whether a `module.exports =` assignment was seen at the top-level
+        // of the file.
+        if (isCommonJSExportAssignment(path)) {
+          state.hasCommonJSExportAssignment = true;
+        }
+
+        // Handle Common JS imports where the variable declaration and
+        // initialization are separate. ie. `var foo; foo = require("./foo")`.
+        //
+        // Currently there is no support for destructuring here or anything on
+        // the right side of the assignment other than the `require` call.
+        if (!t.isIdentifier(path.node.left) || !t.isCallExpression(path.node.right)) {
+          return;
+        }
+        const ident = path.node.left;
+        const callExpr = path.node.right;
+        const source = commonJSRequireSource(callExpr);
+        if (!source) {
+          return;
+        }
+
+        // Look up the original identifier node that introduced this binding.
+        const binding = path.scope.getBinding(ident.name, /* noGlobal */ true);
+        if (!binding) {
+          return;
+        }
+
+        // Register the import. Note that this needs to refer to the identifier
+        // in the `var` declaration, *not* this assignment. This is because
+        // when looking up the binding when processing later references to the
+        // identifier, the binding will refer back to the `var` declaration,
+        // not the assignment.
+        state.importMeta.set(binding.identifier, {
+          symbol: '<CJS>',
+          source,
+          value: binding.identifier,
+        });
+
+        // The actual import registration via `$imports.$add` however needs to
+        // be placed after the assignment.
+        path.insertAfter(
+          createAddImportCall(ident.name, source, '<CJS>', ident)
+        );
       },
 
       VariableDeclaration(path, state) {
