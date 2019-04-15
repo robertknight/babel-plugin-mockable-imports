@@ -209,15 +209,36 @@ the properties to their original values.
 
 ## Known issues and limitations
 
-- The plugin adds an export named `$imports` to every module it processes.
-  This may cause conflicts if you try to combine exports from multiple modules
-  using `export * from <module>`. [See
-  issue](https://github.com/robertknight/babel-plugin-mockable-imports/issues/2).
-  It can also cause problems if you have code which tries to loop over the
-  exports of a module and does not gracefully handle unexpected exports.
-- There is currently no support for dynamic imports, either using `import()`
-  to obtain a promise for a module, or calling `require` anywhere other than
-  at the top level of a module.
+### Drawbacks
+
+### Mocking code that runs when a module is imported
+
+A downside of the approach used by this plugin is that you can't use it to change the result of code that is executed when the module is first imported. For example if a module has:
+
+```js
+import helper from './utils/helper';
+
+export const aConstant = helper(someData);
+
+export function usesHelper() {
+  return helper(someOtherData);
+}
+```
+
+It is possible to mock `helper` in `usesHelper` but not the initialization of `aConstant`. There are solutions to this, but they will involve changes to the code being tested:
+
+1. Change the design of your code so that it exports a function which must be called, instead of executing side effects during the initial import. Making imports free of side effects can have other benefits, eg. for [tree-shaking](https://webpack.js.org/guides/tree-shaking/).
+2. Add an indirection so that the code you want to test calls/uses the mock on-demand rather than during the initial evaluation.
+
+### `$imports` export conflicts
+
+The plugin adds an export named `$imports` to every module it processes. This may cause conflicts if you try to combine exports from multiple modules using `export * from <module>`. [See issue](https://github.com/robertknight/babel-plugin-mockable-imports/issues/2). It can also cause problems if you have code which tries to loop over the exports of a module and does not gracefully handle unexpected exports.
+
+We may in future add an alternative method of exposing the `$imports` object so that tests can get at it.
+  
+### Dynamic imports
+
+There is currently no support for dynamic imports, either using `import()` to obtain a promise for a module, or calling `require` anywhere other than at the top level of a module.
 
 ## Troubleshooting
 
