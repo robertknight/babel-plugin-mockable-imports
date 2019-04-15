@@ -209,8 +209,6 @@ the properties to their original values.
 
 ## Known issues and limitations
 
-### Drawbacks
-
 ### Mocking code that runs when a module is imported
 
 A downside of the approach used by this plugin is that you can't use it to change the result of code that is executed when the module is first imported. For example if a module has:
