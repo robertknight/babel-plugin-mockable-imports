@@ -15,7 +15,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/robertknight/babel-plugin-mockble-imports.git"
+    "url": "git+https://github.com/robertknight/babel-plugin-mockable-imports.git"
   },
   "keywords": [
     "mocking"
