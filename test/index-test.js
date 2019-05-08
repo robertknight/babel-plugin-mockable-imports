@@ -251,7 +251,6 @@ var _require = require("./foo"),
     foo = _require.foo;
 
 ${importHelper()}
-${importAdd("_require", "./foo", "<CJS>")}
 ${importAdd("foo", "./foo")}
 $imports.foo();
 ${trailer()}`,
