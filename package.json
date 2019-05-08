@@ -4,9 +4,11 @@
   "description": "Babel plugin for mocking ES imports",
   "main": "index.js",
   "scripts": {
+    "checkformatting": "prettier --check **/*.js",
     "build": "babel helpers.js --out-dir lib",
+    "lint": "eslint --ignore-pattern lib/* .",
     "format": "prettier --write **/*.js",
-    "test": "mocha",
+    "test": "mocha && npm run lint && npm run checkformatting",
     "prepublishOnly": "npm run build"
   },
   "files": [
