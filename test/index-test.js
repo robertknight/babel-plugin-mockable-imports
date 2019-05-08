@@ -3,13 +3,6 @@
 const { transform } = require("@babel/core");
 const { assert } = require("chai");
 
-function importsDecl(init) {
-  return `
-import { ImportMap } from "babel-plugin-mockable-imports/lib/helpers";
-const $imports = new ImportMap(${init});
-`.trim();
-}
-
 function importHelper() {
   return `
 import { ImportMap } from "babel-plugin-mockable-imports/lib/helpers";
@@ -251,7 +244,6 @@ var _require = require("./foo"),
     foo = _require.foo;
 
 ${importHelper()}
-${importAdd("_require", "./foo", "<CJS>")}
 ${importAdd("foo", "./foo")}
 $imports.foo();
 ${trailer()}`,
