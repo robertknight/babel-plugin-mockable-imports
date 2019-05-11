@@ -1,0 +1,9 @@
+{
+  "compilerOptions": {
+    "target": "esnext",
+    "module": "es2015",
+    "strict": true,
+    "esModuleInterop": true,
+    "outDir": "build"
+  }
+}
