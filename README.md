@@ -104,6 +104,9 @@ If the module you want to test uses CommonJS / Node style imports instead
 (`var someModule = require("some-module")`, see the [section on
 CommonJS](#commonjs-support).
 
+See the [example project](examples/javascript) for a complete runnable project
+using Mocha as a test runner.
+
 ### Mocking default exports
 
 If a module being mocked has a default export (eg. `export default MyReactComponent`),
