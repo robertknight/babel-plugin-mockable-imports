@@ -2,14 +2,24 @@
 
 [![Build Status](https://travis-ci.org/robertknight/babel-plugin-mockable-imports.svg?branch=master)](https://travis-ci.org/robertknight/babel-plugin-mockable-imports)
 
-A Babel plugin that modifies modules to enable mocking of their dependencies. The plugin was written with the following goals:
+A Babel plugin that transforms JavaScript modules (CommonJS or ES2015 style)
+to enable mocking of their dependencies in tests.
 
-- Provide a simple interface for mocking ES and CommonJS (`require`) module imports
-- Work when running tests in Node with any test runner or in the browser when
-  using any bundler (Browserify, Webpack etc.) or no bunder at all
-- Minimize the amount of extra code added to modules, since extra code
-  impacts test execution time
-- Catch common mistakes and warn about them
+See the Usage section below for information on getting started, and the FAQ at
+the end of the README for a comparison to alternative solutions.
+
+## Features
+
+- Provides a simple interface for mocking imports in tests
+- Works with CommonJS (Node style) and native (ES2015) JavaScript modules
+- Can be used with any test runner, any bundler, and whether tests are being run
+  under Node or in the browser
+- Transforms code in a straightforward way that is easy to debug if necessary
+- Minimizes the amount of extra code added to modules, to reduce the impact
+  on test execution time
+- Detects incorrect usage (eg. mocking a module or import that is not used)
+  and causes a test failure if this happens
+- Can be used with both JavaScript and TypeScript
 
 ## Usage
 
