@@ -183,6 +183,16 @@ When processing a CommonJS module the plugin still emits ES6 `import` and
 `export` declarations, so transforming of ES6 `import`/`export` statements
 to CommonJS must be enabled in Babel.
 
+## Usage with TypeScript
+
+It is possible to use this plugin with TypeScript. In order to do that you need
+to transform your TypeScript code using Babel when running tests, and also
+use a helper function to get access to the `$imports` object for a module.
+Since this object is not present in the original source, the TypeScript compiler
+is not aware of its existence.
+
+See the [typescript example project](examples/typescript) for a runnable example.
+
 ## How it works
 
 When the plugin processes a module, it gathers the set of imported symbols and
