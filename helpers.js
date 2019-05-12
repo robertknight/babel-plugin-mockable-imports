@@ -50,14 +50,14 @@ class ImportMap {
     Object.keys(imports).forEach(source => {
       const sourceImports = imports[source];
       let esImports = sourceImports;
-      if (typeof esImports === 'function') {
-        esImports = {default: esImports};
+      if (typeof esImports === "function") {
+        esImports = { default: esImports };
       }
 
       // Handle namespace ES imports (`import * as foo from "foo"`).
       const namespaceAliases = Object.keys(this.$meta).filter(alias => {
         const [source_, symbol_] = this.$meta[alias];
-        return source_ === source && symbol_ === '*';
+        return source_ === source && symbol_ === "*";
       });
       namespaceAliases.forEach(alias => {
         this[alias] = esImports;
@@ -66,7 +66,7 @@ class ImportMap {
       // Handle CJS imports (`var foo = require("bar")`).
       const cjsAliases = Object.keys(this.$meta).filter(alias => {
         const [source_, symbol_] = this.$meta[alias];
-        return source_ === source && symbol_ === '<CJS>';
+        return source_ === source && symbol_ === "<CJS>";
       });
       cjsAliases.forEach(alias => {
         this[alias] = sourceImports;
@@ -86,7 +86,7 @@ class ImportMap {
           cjsAliases.length === 0
         ) {
           throw new Error(
-            `Module does not import "${symbol}" from "${source}"`,
+            `Module does not import "${symbol}" from "${source}"`
           );
         }
 
@@ -120,5 +120,5 @@ function isSpecialMethod(name) {
 
 module.exports = {
   ImportMap,
-  MockingError,
+  MockingError
 };
