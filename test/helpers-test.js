@@ -124,6 +124,39 @@ describe("helpers", () => {
         map.$mock({ "./Widget": MockWidget });
         assert.equal(map.Widget, MockWidget);
       });
+
+      it("supports passing a function to `$mock`", () => {
+        const objectOne = {};
+        const map = new ImportMap({
+          functionOne: [
+            "./function-one",
+            "functionOne",
+            function functionOne() {}
+          ],
+          functionTwo: [
+            "./function-two",
+            "functionTwo",
+            function functionTwo() {}
+          ],
+          objectOne: ["./object-one", "default", objectOne]
+        });
+        const stubFunction = () => {};
+
+        // Call `$mock` with a function that mocks all function imports with
+        // a stub function.
+        map.$mock((source, symbol, value) => {
+          if (typeof value === "function") {
+            return stubFunction;
+          } else {
+            return null;
+          }
+        });
+
+        // Check that only the function imports were mocked.
+        assert.equal(map.functionOne, stubFunction);
+        assert.equal(map.functionTwo, stubFunction);
+        assert.equal(map.objectOne, objectOne);
+      });
     });
 
     describe("$restore", () => {
