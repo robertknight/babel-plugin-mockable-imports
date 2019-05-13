@@ -151,6 +151,46 @@ $imports.$mock({
 });
 ```
 
+### Mocking all imports that match a pattern
+
+In some tests you may want to mock many dependencies in the same way, or ensure
+that all imports meeting certain criteria in a module are mocked consistently.
+
+You can pass a function to `$imports.$mock` which will be called with the
+source, symbol name and original value of each import. The result of the
+function will be used as the mock for that import if it is not `null`.
+
+For example, to mock all functions imported by a module, you can use:
+
+```js
+$imports.$mock((source, symbol, value) => {
+  if (typeof value === 'function') {
+    // Mock functions using Sinon.
+    return sinon.stub();
+  } else {
+    // Skip mocking objects, constants etc.
+    return null;
+  }
+});
+```
+
+To ensure that a test mocks every imported function, you can use:
+
+```js
+// Throw an error if any unmocked function is called.
+$imports.$mock((source, symbol, value) => {
+  if (typeof value === 'function') {
+    return () => throw new Error('Function not mocked');
+  }
+  return null;
+});
+
+// Setup mocks for expected imports.
+$imports.$mock({
+  './util': { doSomething: fakeDoSomething },
+});
+```
+
 ### Limiting mocking to specific files
 
 Babel allows the set of plugins applied to files to be configured on a per

@@ -42,11 +42,32 @@ class ImportMap {
    * If mocks are already active when this is called, the mocks in `imports`
    * are merged with the active mocks.
    *
-   * @param {Object} imports -
-   *   Map of file path (as used in the module that imports the file) to
-   *   replacement content for that module.
+   * @param {Object|Function} imports -
+   *   An object whose keys are file paths (as used by the module being
+   *   tested, *not* the test module) and values are objects mapping export
+   *   names to mock values. As a convenience, the value can also be a
+   *   function in which case it is treated as a mock for the module's
+   *   default export.
+   *
+   *   Alternatively this can be a function which accepts
+   *   (source, symbol, value) arguments and returns either a mock for
+   *   that import or `null`/`undefined` to avoid mocking that import.
+   *   This second form is useful for mocking many imports at once.
    */
   $mock(imports) {
+    if (typeof imports === "function") {
+      const mocks = {};
+      Object.keys(this.$meta).forEach(alias => {
+        const [source, symbol, value] = this.$meta[alias];
+        const mock = imports(source, symbol, value);
+        if (mock != null) {
+          mocks[source] = mocks[source] || {};
+          mocks[source][symbol] = mock;
+        }
+      });
+      this.$mock(mocks);
+    }
+
     Object.keys(imports).forEach(source => {
       const sourceImports = imports[source];
       let esImports = sourceImports;
