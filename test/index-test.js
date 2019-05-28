@@ -11,7 +11,7 @@ const $imports = new ImportMap();
 }
 
 function importAdd(alias, source, symbol = alias, value = alias) {
-  return `$imports.$add("${alias}", "${source}", "${symbol}", ${value})`;
+  return `$imports.$add("${alias}", "${source}", "${symbol}", ${value});`;
 }
 
 function trailer() {
@@ -256,7 +256,7 @@ ${trailer()}`,
 var foo;
 ${importHelper()}
 foo = require("./foo");
-${importAdd("foo", "./foo", "<CJS>")};
+${importAdd("foo", "./foo", "<CJS>")}
 $imports.foo();
 ${trailer()}
 `

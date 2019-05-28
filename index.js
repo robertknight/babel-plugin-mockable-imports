@@ -47,14 +47,16 @@ module.exports = ({ types: t }) => {
    * Create an `$imports.$add(alias, source, symbol, value)` method call.
    */
   function createAddImportCall(alias, source, symbol, value) {
-    return t.callExpression(
-      t.memberExpression(t.identifier("$imports"), t.identifier("$add")),
-      [
-        t.stringLiteral(alias),
-        t.stringLiteral(source),
-        t.stringLiteral(symbol),
-        value
-      ]
+    return t.expressionStatement(
+      t.callExpression(
+        t.memberExpression(t.identifier("$imports"), t.identifier("$add")),
+        [
+          t.stringLiteral(alias),
+          t.stringLiteral(source),
+          t.stringLiteral(symbol),
+          value
+        ]
+      )
     );
   }
 
