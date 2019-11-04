@@ -157,6 +157,21 @@ describe("helpers", () => {
         assert.equal(map.functionTwo, stubFunction);
         assert.equal(map.objectOne, objectOne);
       });
+
+      it("does not process keys of `$mock` argument if it is a function", () => {
+        const map = new ImportMap({
+          foo: ["./foo", "foo", () => "original foo"]
+        });
+
+        const mocker = () => null;
+
+        // This should be ignored because `mocker` is a function.
+        mocker["./foo"] = { foo: () => "mocked foo" };
+
+        map.$mock(mocker);
+
+        assert.equal(map.foo(), "original foo");
+      });
     });
 
     describe("$restore", () => {
