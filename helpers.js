@@ -66,6 +66,8 @@ class ImportMap {
         }
       });
       this.$mock(mocks);
+
+      return;
     }
 
     Object.keys(imports).forEach(source => {
