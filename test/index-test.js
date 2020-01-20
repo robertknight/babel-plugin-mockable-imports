@@ -187,6 +187,71 @@ ${trailer()}
 `
   },
   {
+    description:
+      "CommonJS import of a specific property (identifier, assignment)",
+    code: `
+var foo;
+foo = require('./foo').default;
+foo();
+`,
+    output: `
+var foo;
+${importHelper()}
+foo = require('./foo').default;
+${importAdd("foo", "./foo", "default")}
+$imports.foo();
+${trailer()}
+`
+  },
+  {
+    description:
+      "CommonJS import of a specific property (identifier, var declaration)",
+    code: `
+var foo = require('./foo').default;
+foo();
+`,
+    output: `
+var foo = require('./foo').default;
+
+${importHelper()}
+${importAdd("foo", "./foo", "default")}
+$imports.foo();
+${trailer()}
+`
+  },
+  {
+    description: "CommonJS import of a specific property (literal, assignment)",
+    code: `
+var foo;
+foo = require('./foo')["default"];
+foo();
+`,
+    output: `
+var foo;
+${importHelper()}
+foo = require('./foo')["default"];
+${importAdd("foo", "./foo", "default")}
+$imports.foo();
+${trailer()}
+`
+  },
+  {
+    description:
+      "CommonJS import of a specific property (literal, var declaration)",
+    code: `
+var foo = require('./foo')["default"];
+foo();
+`,
+    output: `
+var foo = require('./foo')["default"];
+
+${importHelper()}
+${importAdd("foo", "./foo", "default")}
+$imports.foo();
+${trailer()}
+`
+  },
+  {
     description: "non top-level CommonJS imports",
     code: `
 function test() {
@@ -260,6 +325,18 @@ ${importAdd("foo", "./foo", "<CJS>")}
 $imports.foo();
 ${trailer()}
 `
+  },
+  {
+    description:
+      "non-CommonJS import variable declaration (member expression init)",
+    code: 'var foo = doSomething("bar")[0];',
+    output: 'var foo = doSomething("bar")[0];'
+  },
+  {
+    description:
+      "non-CommonJS import variable declaration (call expression init)",
+    code: 'var foo = doSomething("bar");',
+    output: 'var foo = doSomething("bar");'
   }
 ];
 
