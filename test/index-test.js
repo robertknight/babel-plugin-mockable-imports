@@ -325,6 +325,18 @@ ${importAdd("foo", "./foo", "<CJS>")}
 $imports.foo();
 ${trailer()}
 `
+  },
+  {
+    description:
+      "non-CommonJS import variable declaration (member expression init)",
+    code: 'var foo = doSomething("bar")[0];',
+    output: 'var foo = doSomething("bar")[0];'
+  },
+  {
+    description:
+      "non-CommonJS import variable declaration (call expression init)",
+    code: 'var foo = doSomething("bar");',
+    output: 'var foo = doSomething("bar");'
   }
 ];
 

@@ -69,6 +69,9 @@ module.exports = ({ types: t }) => {
       }
     } else if (t.isMemberExpression(node) && t.isCallExpression(node.object)) {
       const source = commonJSRequireSource(node.object);
+      if (!source) {
+        return null;
+      }
       let symbol;
       if (t.isIdentifier(node.property)) {
         symbol = node.property.name;
