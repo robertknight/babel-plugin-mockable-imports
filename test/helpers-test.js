@@ -180,7 +180,8 @@ describe("helpers", () => {
         map = new ImportMap({
           first: ["a-module", "first", "original-first-value"],
           second: ["a-module", "second", "original-second-value"],
-          third: ["a-module", "first", "original-first-value"]
+          third: ["a-module", "first", "original-first-value"],
+          fourth: ["b-module", "foo", "original-foo-value"]
         });
       });
 
@@ -205,6 +206,38 @@ describe("helpers", () => {
         map.$restore();
 
         assert.equal(map.first, "original-first-value");
+      });
+
+      it("restores specified modules if an argument is passed", () => {
+        map.$mock({
+          "a-module": {
+            first: "new-first-value",
+            second: "new-second-value"
+          },
+          "b-module": {
+            foo: "new-foo-value"
+          }
+        });
+
+        map.$restore({ "a-module": true });
+
+        assert.equal(map.first, "original-first-value");
+        assert.equal(map.second, "original-second-value");
+        assert.equal(map.fourth, "new-foo-value");
+      });
+
+      it("restores specified symbols if an argument is passed", () => {
+        map.$mock({
+          "a-module": {
+            first: "new-first-value",
+            second: "new-second-value"
+          }
+        });
+
+        map.$restore({ "a-module": { first: true } });
+
+        assert.equal(map.first, "original-first-value");
+        assert.equal(map.second, "new-second-value");
       });
     });
   });

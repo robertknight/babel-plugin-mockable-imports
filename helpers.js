@@ -121,18 +121,44 @@ class ImportMap {
   }
 
   /**
-   * Replace any active mocks with the original imports.
+   * Replace mocks with the original imports.
    *
-   * This function does nothing if called when no mocks are active.
+   * If called with no arguments, all mocks are undone. To restore specific
+   * mocks, pass an object whose keys are module paths and values are either
+   * a boolean indicating whether to restore all mocks for that module, or an
+   * object whose keys are symbols and values are booleans indicating whether
+   * to restore mocks for the specific symbol.
+   *
+   * In other words, if an argument is passed, it has the same shape as the
+   * argument to `$mock`, but the values are booleans indicating whether to
+   * restore a mock rather than mock values.
+   *
+   * This function does nothing if called when no mocks are active. This enables
+   * `$restore()` to be called unconditionally in a test cleanup function even
+   * if the set of symbols that are mocked varies depending on the test.
+   *
+   * @param
    */
-  $restore() {
+  $restore(imports) {
     Object.keys(this.$meta).forEach(alias => {
       if (isSpecialMethod(alias)) {
         // Skip imports which conflict with special methods.
         return;
       }
-      const [, , value] = this.$meta[alias];
-      this[alias] = value;
+      const [source, symbol, value] = this.$meta[alias];
+
+      const restoreMock =
+        // `$restore()` restores all mocks.
+        typeof imports === "undefined" ||
+        // `$restore({ './module': true })` restores all mocks for './module'
+        imports[source] === true ||
+        // `$restore({ './module': { foo: true }})` restores mock for `foo` from
+        // './module'.
+        (typeof imports[source] === "object" &&
+          imports[source][symbol] === true);
+      if (restoreMock) {
+        this[alias] = value;
+      }
     });
   }
 }
