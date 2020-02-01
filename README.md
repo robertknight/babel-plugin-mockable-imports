@@ -203,6 +203,31 @@ As a convenience, the plugin by default skips any files in directories named
 `test` or `__tests__` or their subdirectories. This can be configured using the
 `excludeDirs` option.
 
+
+### Restoring specific mocks
+
+Calling `$imports.$restore()` will undo/restore all active mocks for a module. It is
+also possible to restore only specific mocks by passing an object which specifies
+the modules and symbols to un-mock. The object is in the same format as the
+argument to `$imports.$mock`, except the values are booleans indicating whether
+to restore the mock.
+
+```js
+// Restore all mocks for imports from the './some-widget' module. Other mocks are
+// left alone.
+$imports.$restore({
+  './some-widget': true
+});
+
+// Restore mocks for the "foo" symbol imported from the './utils' module. Other
+// mocks are left alone.
+$imports.$restore({
+  './utils': {
+    foo: true,
+  }
+});
+```
+
 ### Options
 
 The plugin supports the following options:
