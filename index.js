@@ -199,8 +199,16 @@ module.exports = ({ types: t }) => {
         // Initialize state variables that get updated as imports and references
         // to those imports are found.
         enter(path, state) {
-          // Set of local identifiers which refer to an import.
-          state.importIdentifiers = new Set();
+          // Map associating local identifiers which refer to an import to the
+          // alias name which was registered with `$imports.$add`.
+          //
+          // Other Babel plugins may rename local identifiers which refer to
+          // imports, so we need to keep track of what name the identifier had
+          // at the point when the `$imports.$add` call was generated.
+          //
+          // When replacing a reference to such an identifier, this enables us
+          // to generate the correct `$imports.<alias name>` reference.
+          state.importIdentifiers = new Map();
 
           // Flag to keep track of whether further processing of this file has
           // stopped.
@@ -317,7 +325,7 @@ module.exports = ({ types: t }) => {
         // when looking up the binding when processing later references to the
         // identifier, the binding will refer back to the `var` declaration,
         // not the assignment.
-        state.importIdentifiers.add(binding.identifier);
+        state.importIdentifiers.set(binding.identifier, ident.name);
 
         // The actual import registration via `$imports.$add` however needs to
         // be placed after the assignment.
@@ -347,7 +355,7 @@ module.exports = ({ types: t }) => {
 
         // Register all found imports.
         imports.forEach(({ alias, source, symbol, value }) => {
-          state.importIdentifiers.add(value);
+          state.importIdentifiers.set(value, alias);
           path.insertAfter(createAddImportCall(alias, source, symbol, value));
         });
       },
@@ -389,7 +397,7 @@ module.exports = ({ types: t }) => {
             return;
           }
 
-          state.importIdentifiers.add(spec.local);
+          state.importIdentifiers.set(spec.local, spec.local.name);
           path.insertAfter(
             createAddImportCall(spec.local.name, source, imported, spec.local)
           );
@@ -431,7 +439,10 @@ module.exports = ({ types: t }) => {
           return;
         }
 
-        // Replace import reference with `$imports.symbol`.
+        // Replace import reference with `$imports.<alias>`. Note that it is
+        // important to use the same alias that was registered with `$imports.$add`,
+        // even if the identifier was subsequently renamed by other Babel plugins.
+        const alias = state.importIdentifiers.get(binding.identifier);
         if (
           child.parent.type === "JSXOpeningElement" ||
           child.parent.type === "JSXClosingElement" ||
@@ -440,15 +451,12 @@ module.exports = ({ types: t }) => {
           child.replaceWith(
             t.jsxMemberExpression(
               t.jsxIdentifier("$imports"),
-              t.jsxIdentifier(child.node.name)
+              t.jsxIdentifier(alias)
             )
           );
         } else {
           child.replaceWith(
-            t.memberExpression(
-              t.identifier("$imports"),
-              t.identifier(child.node.name)
-            )
+            t.memberExpression(t.identifier("$imports"), t.identifier(alias))
           );
         }
       }
