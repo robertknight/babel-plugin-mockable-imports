@@ -337,6 +337,37 @@ ${trailer()}
       "non-CommonJS import variable declaration (call expression init)",
     code: 'var foo = doSomething("bar");',
     output: 'var foo = doSomething("bar");'
+  },
+  {
+    description:
+      "Reference to import where local alias has been renamed by another Babel plugin",
+    code: `
+import { render } from "preact";
+
+var x = {
+  render: function () {
+    render();
+  }
+};
+`,
+    plugins: ["@babel/plugin-transform-function-name"],
+
+    // Note that the imported `render` function is renamed to `_render` by the
+    // @babel/plugin-transform-function-name plugin _after_ the `$imports.$add`
+    // call is generated. The generated `$imports.<symbol>` reference needs to
+    // refer to the original alias name (`render`) not the current name (`_render`)
+    // at the point where the function is called.
+    output: `
+import { render as _render } from "preact";
+${importHelper()}
+$imports.$add("render", "preact", "render", _render);
+var x = {
+  render: function render() {
+    $imports.render();
+  }
+};
+${trailer()}
+`
   }
 ];
 
