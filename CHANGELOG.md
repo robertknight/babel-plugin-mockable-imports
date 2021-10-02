@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.0] - 2021-10-02
+
+- Ignore imports added by @rollup/plugin-babel by default and support regex patterns
+  in `excludeImportsFromModules` [#52](https://github.com/robertknight/babel-plugin-mockable-imports/pull/52)
+
+- Fix `excludeImportsFromModules` not working with ES imports [#49](https://github.com/robertknight/babel-plugin-mockable-imports/pull/49)
+
 ## [1.7.1] - 2020-02-18
 
 - Handle case where identifier referring to import is renamed by another Babel
