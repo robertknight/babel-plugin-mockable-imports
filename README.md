@@ -1,7 +1,5 @@
 # babel-plugin-mockable-imports
 
-[![Build Status](https://travis-ci.org/robertknight/babel-plugin-mockable-imports.svg?branch=master)](https://travis-ci.org/robertknight/babel-plugin-mockable-imports)
-
 A Babel plugin that transforms JavaScript modules (CommonJS or ES2015 style)
 to enable mocking of their dependencies in tests.
 
