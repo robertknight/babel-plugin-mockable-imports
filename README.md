@@ -240,8 +240,11 @@ this transformation by default.
 `excludeImportsFromModules`
 
 An array of module names which should be ignored when processing imports.
-Any imports from these modules will not be mockable.
-Default: `["proxyquire"]`.
+Any imports from these modules will not be mockable. Module names can be
+specified as strings (to match exactly) or regular expressions.
+
+By default this list includes imports from a few packages (eg. proxyquire,
+@rollup/plugin-babel) which are known not to work well with this plugin.
 
 ### CommonJS support
 

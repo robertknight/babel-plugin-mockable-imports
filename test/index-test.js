@@ -398,6 +398,9 @@ var proxyquire = require('proxyquire');
 import proxyquire2 from 'proxyquire';
 proxyquire(require);
 proxyquire2(require);
+
+var someHelper = require('\0rollupPluginBabelHelpers.js');
+someHelper();
 `;
     const { code: output } = transform(code, options);
     assert.equal(normalize(code), normalize(output));
@@ -409,6 +412,11 @@ import ignoreMe from 'ignore-me';
 const ignoreMe2 = require('ignore-me');
 ignoreMe();
 ignoreMe2();
+
+import excludeMe from 'exclude-me';
+const excludeMe2 = require('exclude-me');
+excludeMe();
+excludeMe2();
 `;
     const { code: output } = transform(code, {
       plugins: [
@@ -416,7 +424,7 @@ ignoreMe2();
         [
           pluginPath,
           {
-            excludeImportsFromModules: ["ignore-me"]
+            excludeImportsFromModules: ["ignore-me", /^exclude/]
           }
         ]
       ]
