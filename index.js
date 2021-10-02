@@ -9,11 +9,18 @@ const helperImportPath = `${packageName}/lib/helpers`;
  * Default list of modules whose imports are excluded from processing.
  */
 const EXCLUDE_LIST = [
+  // Exclude imports added by this plugin.
+  helperImportPath,
+
   // Proxyquirify and proxyquire-universal are two popular mocking libraries
   // which include Browserify plugins that look for references to their imports
   // in the code. You'd never want to mock these, and applying the transform
   // here breaks the plugin.
-  "proxyquire"
+  "proxyquire",
+
+  // Rollup plugins such as @rollup/plugin-babel use null-prefixed modules for
+  // internal helpers.
+  /\0/
 ];
 
 /**
@@ -108,7 +115,11 @@ module.exports = ({ types: t }) => {
    * mockable.
    */
   function excludeImportsFrom(source, excludeList = EXCLUDE_LIST) {
-    return source === helperImportPath || excludeList.includes(source);
+    return excludeList.some(
+      pattern =>
+        (typeof pattern === "string" && pattern === source) ||
+        (pattern instanceof RegExp && pattern.test(source))
+    );
   }
 
   /**
