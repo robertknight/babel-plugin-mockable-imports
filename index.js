@@ -393,7 +393,9 @@ module.exports = ({ types: t }) => {
           }
 
           const source = path.node.source.value;
-          if (excludeImportsFrom(source, state.excludeImportsFromModules)) {
+          if (
+            excludeImportsFrom(source, state.opts.excludeImportsFromModules)
+          ) {
             return;
           }
 

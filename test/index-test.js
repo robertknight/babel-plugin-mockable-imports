@@ -392,7 +392,7 @@ describe("plugin", () => {
     });
   });
 
-  it("ignores excluded modules in default exclude list", () => {
+  it("ignores imports from modules in default exclude list", () => {
     const code = `
 var proxyquire = require('proxyquire');
 import proxyquire2 from 'proxyquire';
@@ -403,10 +403,12 @@ proxyquire2(require);
     assert.equal(normalize(code), normalize(output));
   });
 
-  it("ignores excluded modules in user-provided exclude list", () => {
+  it("ignores imports from modules in user-provided exclude list", () => {
     const code = `
-var ignoreMe = require('ignore-me');
+import ignoreMe from 'ignore-me';
+const ignoreMe2 = require('ignore-me');
 ignoreMe();
+ignoreMe2();
 `;
     const { code: output } = transform(code, {
       plugins: [
