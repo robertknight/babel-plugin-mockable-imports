@@ -1,9 +1,6 @@
-"use strict";
+import * as pathModule from "path";
 
-const pathModule = require("path");
-
-const packageName = require("./package.json").name;
-const helperImportPath = `${packageName}/lib/helpers`;
+const helperImportPath = "babel-plugin-mockable-imports/lib/helpers";
 
 /**
  * Default list of modules whose imports are excluded from processing.
@@ -32,7 +29,7 @@ const EXCLUDE_LIST = [
  */
 const EXCLUDED_DIRS = ["test", "__tests__"];
 
-module.exports = ({ types: t }) => {
+export default ({ types: t }) => {
   /**
    * Return the required module from a CallExpression, if it is a `require(...)`
    * call.

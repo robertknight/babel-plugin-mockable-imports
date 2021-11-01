@@ -1,7 +1,8 @@
-"use strict";
+import { fileURLToPath } from "url";
+import * as path from "path";
 
-const { transform } = require("@babel/core");
-const { assert } = require("chai");
+import { transform } from "@babel/core";
+import { assert } from "chai";
 
 function importHelper() {
   return `
@@ -371,7 +372,8 @@ ${trailer()}
   }
 ];
 
-const pluginPath = require.resolve("../index");
+const pluginPath =
+  path.dirname(fileURLToPath(import.meta.url)) + "/../index.js";
 const syntaxPlugins = ["@babel/plugin-syntax-jsx"];
 
 const options = {
@@ -382,17 +384,25 @@ function normalize(code) {
   return code.replace(/\n\n/gm, "\n").trim();
 }
 
+function transformAsync(code, options) {
+  return new Promise((resolve, reject) => {
+    transform(code, options, (err, result) =>
+      err ? reject(err) : resolve(result)
+    );
+  });
+}
+
 describe("plugin", () => {
   fixtures.forEach(({ description, code, output, plugins = [] }) => {
-    it(`generates expected code for ${description}`, () => {
+    it(`generates expected code for ${description}`, async () => {
       const options_ = { ...options };
       options_.plugins = [...options_.plugins, ...plugins];
-      const { code: actualOutput } = transform(code, options_);
+      const { code: actualOutput } = await transformAsync(code, options_);
       assert.equal(actualOutput.trim(), output.trim());
     });
   });
 
-  it("ignores imports from modules in default exclude list", () => {
+  it("ignores imports from modules in default exclude list", async () => {
     const code = `
 var proxyquire = require('proxyquire');
 import proxyquire2 from 'proxyquire';
@@ -402,11 +412,11 @@ proxyquire2(require);
 var someHelper = require('\0rollupPluginBabelHelpers.js');
 someHelper();
 `;
-    const { code: output } = transform(code, options);
+    const { code: output } = await transformAsync(code, options);
     assert.equal(normalize(code), normalize(output));
   });
 
-  it("ignores imports from modules in user-provided exclude list", () => {
+  it("ignores imports from modules in user-provided exclude list", async () => {
     const code = `
 import ignoreMe from 'ignore-me';
 const ignoreMe2 = require('ignore-me');
@@ -418,7 +428,7 @@ const excludeMe2 = require('exclude-me');
 excludeMe();
 excludeMe2();
 `;
-    const { code: output } = transform(code, {
+    const { code: output } = await transformAsync(code, {
       plugins: [
         ...syntaxPlugins,
         [
@@ -434,30 +444,32 @@ excludeMe2();
   });
 
   describe("dir-based exclusion", () => {
-    function doesTransformFile(filename, pluginOpts = {}) {
+    async function doesTransformFile(filename, pluginOpts = {}) {
       const code = `
 import * as foo from './foo';
 var foo2 = require('foo');
 foo();
 foo2();`;
-      const { code: output } = transform(code, {
+      const { code: output } = await transformAsync(code, {
         plugins: [[pluginPath, pluginOpts]],
         filename
       });
       return normalize(code) !== normalize(output);
     }
 
-    it("does transform modules outside of test dirs", () => {
-      assert.isTrue(doesTransformFile("/Users/john/project/index.js"));
+    it("does transform modules outside of test dirs", async () => {
+      assert.isTrue(await doesTransformFile("/Users/john/project/index.js"));
     });
 
-    it("does not transform modules in test dirs by default", () => {
-      assert.isFalse(doesTransformFile("/Users/john/project/test/index.js"));
-    });
-
-    it("does not transform modules that match user-provided exclude list", () => {
+    it("does not transform modules in test dirs by default", async () => {
       assert.isFalse(
-        doesTransformFile("/Users/john/project/prueba/index.js", {
+        await doesTransformFile("/Users/john/project/test/index.js")
+      );
+    });
+
+    it("does not transform modules that match user-provided exclude list", async () => {
+      assert.isFalse(
+        await doesTransformFile("/Users/john/project/prueba/index.js", {
           excludeDirs: ["prueba"]
         })
       );

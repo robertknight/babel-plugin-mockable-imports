@@ -1,8 +1,6 @@
-"use strict";
+import { assert } from "chai";
 
-const { ImportMap } = require("../helpers");
-
-const { assert } = require("chai");
+import { ImportMap } from "../helpers.js";
 
 describe("helpers", () => {
   describe("ImportMap", () => {

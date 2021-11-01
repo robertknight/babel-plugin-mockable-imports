@@ -1,4 +1,4 @@
-class MockingError extends Error {
+export class MockingError extends Error {
   constructor(msg) {
     super(msg);
   }
@@ -12,7 +12,7 @@ class MockingError extends Error {
  * the module under test and call `$mock` and `$restore` methods to mock
  * dependencies.
  */
-class ImportMap {
+export class ImportMap {
   constructor(imports = {}) {
     /**
      * A mapping of import local name (or alias) to metadata about where
@@ -164,10 +164,5 @@ class ImportMap {
 }
 
 function isSpecialMethod(name) {
-  return ImportMap.prototype.hasOwnProperty(name);
+  return Object.prototype.hasOwnProperty.call(ImportMap.prototype, name);
 }
-
-module.exports = {
-  ImportMap,
-  MockingError
-};
