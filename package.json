@@ -2,6 +2,7 @@
   "name": "babel-plugin-mockable-imports",
   "version": "1.8.0",
   "description": "Babel plugin for mocking ES imports",
+  "type": "module",
   "main": "index.js",
   "scripts": {
     "checkformatting": "prettier --check *.js test/*.js",
@@ -28,15 +29,16 @@
     "url": "https://github.com/robertknight/babel-plugin-mockable-imports/issues"
   },
   "homepage": "https://github.com/robertknight/babel-plugin-mockable-imports#readme",
+  "browserslist": "chrome >= 80, firefox >= 80, safari >= 14",
   "devDependencies": {
-    "@babel/cli": "^7.11.6",
-    "@babel/core": "^7.11.6",
-    "@babel/plugin-syntax-jsx": "^7.10.4",
-    "@babel/plugin-transform-destructuring": "^7.10.4",
-    "@babel/preset-env": "^7.11.5",
-    "chai": "^4.2.0",
-    "eslint": "^5.16.0",
-    "mocha": "^6.2.3",
+    "@babel/cli": "^7.16.0",
+    "@babel/core": "^7.16.0",
+    "@babel/plugin-syntax-jsx": "^7.16.0",
+    "@babel/plugin-transform-destructuring": "^7.16.0",
+    "@babel/preset-env": "^7.16.0",
+    "chai": "^4.3.4",
+    "eslint": "^8.1.0",
+    "mocha": "^9.1.3",
     "prettier": "1.16.4"
   }
 }
