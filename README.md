@@ -1,7 +1,6 @@
 # babel-plugin-mockable-imports
 
-A Babel plugin that transforms JavaScript modules (CommonJS or ES2015 style)
-to enable mocking of their dependencies in tests.
+A Babel plugin that transforms JavaScript modules to enable mocking of their dependencies in tests.
 
 See the Usage section below for information on getting started, and the FAQ at
 the end of the README for a comparison to alternative solutions.
@@ -9,7 +8,6 @@ the end of the README for a comparison to alternative solutions.
 ## Features
 
 - Provides a simple interface for mocking imports in tests
-- Works with CommonJS (Node style) and native (ES2015) JavaScript modules
 - Can be used with any test runner, any bundler, and whether tests are being run
   under Node or in the browser
 - Transforms code in a straightforward way that is easy to debug if necessary
@@ -107,10 +105,6 @@ describe('generatePassword', () => {
   });
 });
 ```
-
-If the module you want to test uses CommonJS / Node style imports instead
-(`var someModule = require("some-module")`, see the [section on
-CommonJS](#commonjs-support).
 
 See the [example project](examples/javascript) for a complete runnable project
 using Mocha as a test runner.
@@ -244,24 +238,6 @@ specified as strings (to match exactly) or regular expressions.
 By default this list includes imports from a few packages (eg. proxyquire,
 @rollup/plugin-babel) which are known not to work well with this plugin.
 
-### CommonJS support
-
-The plugin has basic support for CommonJS. It will recognize the
-following patterns as imports:
-
-```js
-var foo = require('./foo');
-var { foo } = require('./foo');
-var { foo: bar } = require('./foo');
-```
-
-Where `var` may also be `const` or `let`. If the `require` is wrapped or
-contained within an expression it will not be processed.
-
-When processing a CommonJS module the plugin still emits ES6 `import` and
-`export` declarations, so transforming of ES6 `import`/`export` statements
-to CommonJS must be enabled in Babel.
-
 ## Usage with TypeScript
 
 It is possible to use this plugin with TypeScript. In order to do that you need
@@ -345,7 +321,7 @@ We may in future add an alternative method of exposing the `$imports` object so 
 
 ### Dynamic imports
 
-There is currently no support for dynamic imports, either using `import()` to obtain a promise for a module, or calling `require` anywhere other than at the top level of a module.
+There is currently no support for dynamic imports using `import()`.
 
 ## Troubleshooting
 
