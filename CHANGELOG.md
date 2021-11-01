@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] - 2021-11-01
+
+The package has been converted to use ES modules. To use it you will need a
+version of Node and other tooling which supports ES modules.
+
+- Convert package to ES module format [#54](https://github.com/robertknight/babel-plugin-mockable-imports/pull/54)
+
 ## [1.8.0] - 2021-10-02
 
 - Ignore imports added by @rollup/plugin-babel by default and support regex patterns
