@@ -9,7 +9,7 @@ describe("helpers", () => {
       const secondIdent = "foo";
       const map = new ImportMap({
         firstIdent: ["src-module", "firstIdent", firstIdent],
-        secondIdent: ["other-src-module", "secondIdent", secondIdent]
+        secondIdent: ["other-src-module", "secondIdent", secondIdent],
       });
       assert.equal(map.firstIdent, firstIdent);
       assert.equal(map.secondIdent, secondIdent);
@@ -19,7 +19,7 @@ describe("helpers", () => {
       const map = new ImportMap({
         ident: ["src-module", "ident", "ident-value"],
         $mock: ["src-module", "$mock", "value"],
-        $restore: ["src-module", "$mock", "value"]
+        $restore: ["src-module", "$mock", "value"],
       });
       assert.equal(map.$mock, ImportMap.prototype.$mock);
       assert.equal(map.$restore, ImportMap.prototype.$restore);
@@ -33,7 +33,7 @@ describe("helpers", () => {
         assert.deepEqual(map.$meta.foo, ["./bar", "foo", 42]);
       });
 
-      ["$mock", "$restore", "$add"].forEach(method => {
+      ["$mock", "$restore", "$add"].forEach((method) => {
         it(`does not add a new property if the name is ${method}`, () => {
           const map = new ImportMap();
           map.$add(method, "./bar", "foo", 42);
@@ -47,14 +47,14 @@ describe("helpers", () => {
         const map = new ImportMap({
           first: ["a-module", "first", "original-first-value"],
           second: ["a-module", "second", "original-second-value"],
-          third: ["a-module", "first", "original-first-value"]
+          third: ["a-module", "first", "original-first-value"],
         });
 
         map.$mock({
           "a-module": {
             first: "new-first-value",
-            second: "new-second-value"
-          }
+            second: "new-second-value",
+          },
         });
 
         assert.equal(map.first, "new-first-value");
@@ -65,7 +65,7 @@ describe("helpers", () => {
       it("can be called multiple times", () => {
         const map = new ImportMap({
           first: ["a-module", "first", "original-first-value"],
-          second: ["a-module", "second", "original-second-value"]
+          second: ["a-module", "second", "original-second-value"],
         });
 
         map.$mock({ "a-module": { first: "new-first-value" } });
@@ -77,7 +77,7 @@ describe("helpers", () => {
 
       it("throws if mock does not match any imported symbol", () => {
         const map = new ImportMap({
-          ident: ["a-module", "ident", "ident-value"]
+          ident: ["a-module", "ident", "ident-value"],
         });
 
         assert.throws(() => {
@@ -90,7 +90,7 @@ describe("helpers", () => {
 
       it("supports namespace imports", () => {
         const map = new ImportMap({
-          aModule: ["a-module", "*", { ident: "ident-value" }]
+          aModule: ["a-module", "*", { ident: "ident-value" }],
         });
 
         map.$mock({ "a-module": { ident: "new-value" } });
@@ -107,7 +107,7 @@ describe("helpers", () => {
 
       it("supports a shorthand for mocking non-object default exports", () => {
         const map = new ImportMap({
-          Widget: ["./Widget", "default", function Widget() {}]
+          Widget: ["./Widget", "default", function Widget() {}],
         });
         const MockWidget = () => {};
         map.$mock({ "./Widget": MockWidget });
@@ -116,7 +116,7 @@ describe("helpers", () => {
 
       it("mocks symbols imported via CommonJS imports", () => {
         const map = new ImportMap({
-          Widget: ["./Widget", "<CJS>", function Widget() {}]
+          Widget: ["./Widget", "<CJS>", function Widget() {}],
         });
         const MockWidget = () => {};
         map.$mock({ "./Widget": MockWidget });
@@ -129,14 +129,14 @@ describe("helpers", () => {
           functionOne: [
             "./function-one",
             "functionOne",
-            function functionOne() {}
+            function functionOne() {},
           ],
           functionTwo: [
             "./function-two",
             "functionTwo",
-            function functionTwo() {}
+            function functionTwo() {},
           ],
-          objectOne: ["./object-one", "default", objectOne]
+          objectOne: ["./object-one", "default", objectOne],
         });
         const stubFunction = () => {};
 
@@ -158,7 +158,7 @@ describe("helpers", () => {
 
       it("does not process keys of `$mock` argument if it is a function", () => {
         const map = new ImportMap({
-          foo: ["./foo", "foo", () => "original foo"]
+          foo: ["./foo", "foo", () => "original foo"],
         });
 
         const mocker = () => null;
@@ -179,7 +179,7 @@ describe("helpers", () => {
           first: ["a-module", "first", "original-first-value"],
           second: ["a-module", "second", "original-second-value"],
           third: ["a-module", "first", "original-first-value"],
-          fourth: ["b-module", "foo", "original-foo-value"]
+          fourth: ["b-module", "foo", "original-foo-value"],
         });
       });
 
@@ -187,8 +187,8 @@ describe("helpers", () => {
         map.$mock({
           "a-module": {
             first: "new-first-value",
-            second: "new-second-value"
-          }
+            second: "new-second-value",
+          },
         });
 
         map.$restore();
@@ -210,11 +210,11 @@ describe("helpers", () => {
         map.$mock({
           "a-module": {
             first: "new-first-value",
-            second: "new-second-value"
+            second: "new-second-value",
           },
           "b-module": {
-            foo: "new-foo-value"
-          }
+            foo: "new-foo-value",
+          },
         });
 
         map.$restore({ "a-module": true });
@@ -228,8 +228,8 @@ describe("helpers", () => {
         map.$mock({
           "a-module": {
             first: "new-first-value",
-            second: "new-second-value"
-          }
+            second: "new-second-value",
+          },
         });
 
         map.$restore({ "a-module": { first: true } });
