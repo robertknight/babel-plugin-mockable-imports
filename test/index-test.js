@@ -32,7 +32,7 @@ ${importHelper()}
 ${importAdd("ident", "a-module")}
 $imports.ident();
 ${trailer()}
-`
+`,
   },
   {
     description: "default ES6 imports",
@@ -46,7 +46,7 @@ ${importHelper()}
 ${importAdd("ident", "a-module", "default")}
 $imports.ident();
 ${trailer()}
-`
+`,
   },
   {
     description: "ES6 namespace imports",
@@ -60,7 +60,7 @@ ${importHelper()}
 ${importAdd("aModule", "a-module", "*")}
 $imports.aModule.ident();
 ${trailer()}
-`
+`,
   },
   {
     description: "side-effect only imports",
@@ -69,12 +69,12 @@ import 'a-module';
 `,
     output: `
 import 'a-module';
-`
+`,
   },
   {
     description: "modules with no imports",
     code: "var x = 42;",
-    output: "var x = 42;"
+    output: "var x = 42;",
   },
   {
     description: "React component imports",
@@ -94,7 +94,7 @@ function MyComponent() {
 }
 
 ${trailer()}
-`
+`,
   },
   {
     description: "files that already declare `$imports`",
@@ -103,7 +103,7 @@ import { $imports } from 'a-module';
 `,
     output: `
 import { $imports } from 'a-module';
-`
+`,
   },
   {
     description: "re-exports of imported symbols",
@@ -116,7 +116,7 @@ ${importHelper()}
 ${importAdd("foo", "a-module")}
 export { foo };
 ${trailer()}
-`
+`,
   },
   {
     description: "JSX member exports",
@@ -136,7 +136,7 @@ function MyComponent() {
 }
 
 ${trailer()}
-`
+`,
   },
   {
     description: "CommonJS default or namespace imports",
@@ -151,7 +151,7 @@ ${importHelper()}
 ${importAdd("foo", "./foo", "<CJS>")}
 $imports.foo();
 ${trailer()}
-`
+`,
   },
   {
     description: "CommonJS object pattern imports",
@@ -168,7 +168,7 @@ ${importHelper()}
 ${importAdd("foo", "./foo")}
 $imports.foo();
 ${trailer()}
-`
+`,
   },
   {
     description: "CommonJS object pattern imports with rename",
@@ -185,7 +185,7 @@ ${importHelper()}
 ${importAdd("foo", "./foo", "bar")}
 $imports.foo();
 ${trailer()}
-`
+`,
   },
   {
     description:
@@ -202,7 +202,7 @@ foo = require('./foo').default;
 ${importAdd("foo", "./foo", "default")}
 $imports.foo();
 ${trailer()}
-`
+`,
   },
   {
     description:
@@ -218,7 +218,7 @@ ${importHelper()}
 ${importAdd("foo", "./foo", "default")}
 $imports.foo();
 ${trailer()}
-`
+`,
   },
   {
     description: "CommonJS import of a specific property (literal, assignment)",
@@ -234,7 +234,7 @@ foo = require('./foo')["default"];
 ${importAdd("foo", "./foo", "default")}
 $imports.foo();
 ${trailer()}
-`
+`,
   },
   {
     description:
@@ -250,7 +250,7 @@ ${importHelper()}
 ${importAdd("foo", "./foo", "default")}
 $imports.foo();
 ${trailer()}
-`
+`,
   },
   {
     description: "non top-level CommonJS imports",
@@ -262,7 +262,7 @@ function test() {
 function test() {
   var foo = require('./foo');
 }
-`
+`,
   },
   {
     description: "module with default CommonJS export",
@@ -284,7 +284,7 @@ function bar() {
 module.exports = bar;
 module.exports.$imports = $imports;
 ${trailer()}
-`
+`,
   },
   {
     description: "common JS import wrapped in sequence",
@@ -297,7 +297,7 @@ var foo = (true, require('./foo'));
 ${importHelper()}
 ${importAdd("foo", "./foo", "<CJS>")}
 $imports.foo();
-${trailer()}`
+${trailer()}`,
   },
   {
     description: "common JS import with destructuring transform",
@@ -313,7 +313,7 @@ ${importHelper()}
 ${importAdd("foo", "./foo")}
 $imports.foo();
 ${trailer()}`,
-    plugins: ["@babel/plugin-transform-destructuring"]
+    plugins: ["@babel/plugin-transform-destructuring"],
   },
   {
     description: "common JS import with separate var decl and initialization",
@@ -325,19 +325,19 @@ foo = require("./foo");
 ${importAdd("foo", "./foo", "<CJS>")}
 $imports.foo();
 ${trailer()}
-`
+`,
   },
   {
     description:
       "non-CommonJS import variable declaration (member expression init)",
     code: 'var foo = doSomething("bar")[0];',
-    output: 'var foo = doSomething("bar")[0];'
+    output: 'var foo = doSomething("bar")[0];',
   },
   {
     description:
       "non-CommonJS import variable declaration (call expression init)",
     code: 'var foo = doSomething("bar");',
-    output: 'var foo = doSomething("bar");'
+    output: 'var foo = doSomething("bar");',
   },
   {
     description:
@@ -368,8 +368,8 @@ var x = {
   }
 };
 ${trailer()}
-`
-  }
+`,
+  },
 ];
 
 const pluginPath =
@@ -377,7 +377,7 @@ const pluginPath =
 const syntaxPlugins = ["@babel/plugin-syntax-jsx"];
 
 const options = {
-  plugins: [...syntaxPlugins, pluginPath]
+  plugins: [...syntaxPlugins, pluginPath],
 };
 
 function normalize(code) {
@@ -434,10 +434,10 @@ excludeMe2();
         [
           pluginPath,
           {
-            excludeImportsFromModules: ["ignore-me", /^exclude/]
-          }
-        ]
-      ]
+            excludeImportsFromModules: ["ignore-me", /^exclude/],
+          },
+        ],
+      ],
     });
 
     assert.equal(normalize(code), normalize(output));
@@ -452,7 +452,7 @@ foo();
 foo2();`;
       const { code: output } = await transformAsync(code, {
         plugins: [[pluginPath, pluginOpts]],
-        filename
+        filename,
       });
       return normalize(code) !== normalize(output);
     }
@@ -470,7 +470,7 @@ foo2();`;
     it("does not transform modules that match user-provided exclude list", async () => {
       assert.isFalse(
         await doesTransformFile("/Users/john/project/prueba/index.js", {
-          excludeDirs: ["prueba"]
+          excludeDirs: ["prueba"],
         })
       );
     });

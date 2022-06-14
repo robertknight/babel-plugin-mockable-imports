@@ -17,7 +17,7 @@ const EXCLUDE_LIST = [
 
   // Rollup plugins such as @rollup/plugin-babel use null-prefixed modules for
   // internal helpers.
-  /\0/
+  /\0/,
 ];
 
 /**
@@ -101,7 +101,7 @@ export default ({ types: t }) => {
           t.stringLiteral(alias),
           t.stringLiteral(source),
           t.stringLiteral(symbol),
-          value
+          value,
         ]
       )
     );
@@ -113,7 +113,7 @@ export default ({ types: t }) => {
    */
   function excludeImportsFrom(source, excludeList = EXCLUDE_LIST) {
     return excludeList.some(
-      pattern =>
+      (pattern) =>
         (typeof pattern === "string" && pattern === source) ||
         (pattern instanceof RegExp && pattern.test(source))
     );
@@ -132,7 +132,7 @@ export default ({ types: t }) => {
 
     const excludeList = state.opts.excludeDirs || EXCLUDED_DIRS;
     const dirParts = pathModule.dirname(filename).split(pathModule.sep);
-    return dirParts.some(part => excludeList.includes(part));
+    return dirParts.some((part) => excludeList.includes(part));
   }
 
   /**
@@ -179,7 +179,7 @@ export default ({ types: t }) => {
           alias: id.name,
           symbol,
           source,
-          value: id
+          value: id,
         });
       } else if (id.type === "ObjectPattern") {
         // `var { aSymbol: localName } = require("a-module")`
@@ -194,11 +194,11 @@ export default ({ types: t }) => {
             alias: property.value.name,
             source,
             symbol,
-            value
+            value,
           });
         }
       }
-    }
+    },
   };
 
   return {
@@ -240,7 +240,7 @@ export default ({ types: t }) => {
               t.importSpecifier(
                 t.identifier("ImportMap"),
                 t.identifier("ImportMap")
-              )
+              ),
             ],
             t.stringLiteral(helperImportPath)
           );
@@ -249,14 +249,14 @@ export default ({ types: t }) => {
             t.variableDeclarator(
               t.identifier("$imports"),
               t.newExpression(t.identifier("ImportMap"), [])
-            )
+            ),
           ]);
 
           const exportImportsDecl = t.exportNamedDeclaration(null, [
             t.exportSpecifier(
               t.identifier("$imports"),
               t.identifier("$imports")
-            )
+            ),
           ]);
 
           const body = path.get("body");
@@ -290,7 +290,7 @@ export default ({ types: t }) => {
             );
             body[body.length - 1].insertAfter(cjsExport);
           }
-        }
+        },
       },
 
       // Check for and register CommonJS imports in top-level variable assignments.
@@ -358,7 +358,7 @@ export default ({ types: t }) => {
         const { excludeImportsFromModules } = state.opts;
         path.traverse(collectCommonJSImports, {
           excludeImportsFromModules,
-          imports
+          imports,
         });
 
         // Register all found imports.
@@ -374,7 +374,7 @@ export default ({ types: t }) => {
           return;
         }
         // Process import and add metadata to `state.importIdentifiers` map.
-        path.node.specifiers.forEach(spec => {
+        path.node.specifiers.forEach((spec) => {
           if (spec.local.name === "$imports") {
             // Abort processing the file if it declares an import called
             // `$imports`.
@@ -430,7 +430,7 @@ export default ({ types: t }) => {
         }
 
         // Ignore the reference in generated `$imports.$add` calls.
-        const callExprParent = child.findParent(p => p.isCallExpression());
+        const callExprParent = child.findParent((p) => p.isCallExpression());
         const callee = callExprParent && callExprParent.node.callee;
         if (
           callee &&
@@ -469,7 +469,7 @@ export default ({ types: t }) => {
             t.memberExpression(t.identifier("$imports"), t.identifier(alias))
           );
         }
-      }
-    }
+      },
+    },
   };
 };

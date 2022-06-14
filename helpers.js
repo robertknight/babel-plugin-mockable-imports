@@ -57,7 +57,7 @@ export class ImportMap {
   $mock(imports) {
     if (typeof imports === "function") {
       const mocks = {};
-      Object.keys(this.$meta).forEach(alias => {
+      Object.keys(this.$meta).forEach((alias) => {
         const [source, symbol, value] = this.$meta[alias];
         const mock = imports(source, symbol, value);
         if (mock != null) {
@@ -70,7 +70,7 @@ export class ImportMap {
       return;
     }
 
-    Object.keys(imports).forEach(source => {
+    Object.keys(imports).forEach((source) => {
       const sourceImports = imports[source];
       let esImports = sourceImports;
       if (typeof esImports === "function") {
@@ -78,27 +78,27 @@ export class ImportMap {
       }
 
       // Handle namespace ES imports (`import * as foo from "foo"`).
-      const namespaceAliases = Object.keys(this.$meta).filter(alias => {
+      const namespaceAliases = Object.keys(this.$meta).filter((alias) => {
         const [source_, symbol_] = this.$meta[alias];
         return source_ === source && symbol_ === "*";
       });
-      namespaceAliases.forEach(alias => {
+      namespaceAliases.forEach((alias) => {
         this[alias] = esImports;
       });
 
       // Handle CJS imports (`var foo = require("bar")`).
-      const cjsAliases = Object.keys(this.$meta).filter(alias => {
+      const cjsAliases = Object.keys(this.$meta).filter((alias) => {
         const [source_, symbol_] = this.$meta[alias];
         return source_ === source && symbol_ === "<CJS>";
       });
-      cjsAliases.forEach(alias => {
+      cjsAliases.forEach((alias) => {
         this[alias] = sourceImports;
       });
 
       // Handle named ES imports (`import { foo } from "..."`) or
       // destructured CJS imports (`var { foo } = require("...")`).
-      Object.keys(esImports).forEach(symbol => {
-        const aliases = Object.keys(this.$meta).filter(alias => {
+      Object.keys(esImports).forEach((symbol) => {
+        const aliases = Object.keys(this.$meta).filter((alias) => {
           const [source_, symbol_] = this.$meta[alias];
           return source_ === source && symbol_ === symbol;
         });
@@ -113,7 +113,7 @@ export class ImportMap {
           );
         }
 
-        aliases.forEach(alias => {
+        aliases.forEach((alias) => {
           this[alias] = esImports[symbol];
         });
       });
@@ -140,7 +140,7 @@ export class ImportMap {
    * @param
    */
   $restore(imports) {
-    Object.keys(this.$meta).forEach(alias => {
+    Object.keys(this.$meta).forEach((alias) => {
       if (isSpecialMethod(alias)) {
         // Skip imports which conflict with special methods.
         return;
