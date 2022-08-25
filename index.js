@@ -263,7 +263,8 @@ export default ({ types: t }) => {
 
           // Insert `$imports` declaration below last import.
           const insertedNodes = body[0].insertAfter(helperImport);
-          insertedNodes[0].insertAfter($importsDecl);
+          const [varPath] = insertedNodes[0].insertAfter($importsDecl);
+          path.scope.registerDeclaration(varPath);
 
           // Insert `export { $imports }` at the end of the file. The reason for
           // inserting here is that this gets converted to `exports.$imports =
