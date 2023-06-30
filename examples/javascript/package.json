@@ -15,7 +15,7 @@
     "@babel/register": "^7.4.4",
     "babel-plugin-mockable-imports": "^1.4.0",
     "chai": "^4.2.0",
-    "mocha": "^6.1.4",
+    "mocha": "^10.2.0",
     "sinon": "^7.3.2"
   }
 }
