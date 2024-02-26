@@ -109,7 +109,7 @@ export class ImportMap {
           cjsAliases.length === 0
         ) {
           throw new Error(
-            `Module does not import "${symbol}" from "${source}"`
+            `Module does not import "${symbol}" from "${source}"`,
           );
         }
 

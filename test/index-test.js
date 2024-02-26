@@ -80,7 +80,6 @@ import 'a-module';
     description: "React component imports",
     code: `
 import Widget from './Widget';
-
 function MyComponent() {
   return <Widget arg="value"/>;
 }`,
@@ -88,11 +87,9 @@ function MyComponent() {
 import Widget from './Widget';
 ${importHelper()}
 ${importAdd("Widget", "./Widget", "default")}
-
 function MyComponent() {
   return <$imports.Widget arg="value" />;
 }
-
 ${trailer()}
 `,
   },
@@ -130,11 +127,9 @@ function MyComponent() {
 import * as widgets from './widgets';
 ${importHelper()}
 ${importAdd("widgets", "./widgets", "*")}
-
 function MyComponent() {
   return <$imports.widgets.Widget />;
 }
-
 ${trailer()}
 `,
   },
@@ -146,7 +141,6 @@ foo();
 `,
     output: `
 var foo = require('./foo');
-
 ${importHelper()}
 ${importAdd("foo", "./foo", "<CJS>")}
 $imports.foo();
@@ -163,7 +157,6 @@ foo();
 var {
   foo
 } = require('./foo');
-
 ${importHelper()}
 ${importAdd("foo", "./foo")}
 $imports.foo();
@@ -180,7 +173,6 @@ foo();
 var {
   bar: foo
 } = require('./foo');
-
 ${importHelper()}
 ${importAdd("foo", "./foo", "bar")}
 $imports.foo();
@@ -213,7 +205,6 @@ foo();
 `,
     output: `
 var foo = require('./foo').default;
-
 ${importHelper()}
 ${importAdd("foo", "./foo", "default")}
 $imports.foo();
@@ -245,7 +236,6 @@ foo();
 `,
     output: `
 var foo = require('./foo')["default"];
-
 ${importHelper()}
 ${importAdd("foo", "./foo", "default")}
 $imports.foo();
@@ -273,14 +263,11 @@ module.exports = bar;
 `,
     output: `
 var foo = require('./foo');
-
 ${importHelper()}
 ${importAdd("foo", "./foo", "<CJS>")}
-
 function bar() {
   $imports.foo();
 }
-
 module.exports = bar;
 module.exports.$imports = $imports;
 ${trailer()}
@@ -307,8 +294,7 @@ foo();
 `,
     output: `
 var _require = require("./foo"),
-    foo = _require.foo;
-
+  foo = _require.foo;
 ${importHelper()}
 ${importAdd("foo", "./foo")}
 $imports.foo();
@@ -387,7 +373,7 @@ function normalize(code) {
 function transformAsync(code, options) {
   return new Promise((resolve, reject) => {
     transform(code, options, (err, result) =>
-      err ? reject(err) : resolve(result)
+      err ? reject(err) : resolve(result),
     );
   });
 }
@@ -463,7 +449,7 @@ foo2();`;
 
     it("does not transform modules in test dirs by default", async () => {
       assert.isFalse(
-        await doesTransformFile("/Users/john/project/test/index.js")
+        await doesTransformFile("/Users/john/project/test/index.js"),
       );
     });
 
@@ -471,7 +457,7 @@ foo2();`;
       assert.isFalse(
         await doesTransformFile("/Users/john/project/prueba/index.js", {
           excludeDirs: ["prueba"],
-        })
+        }),
       );
     });
   });

@@ -102,8 +102,8 @@ export default ({ types: t }) => {
           t.stringLiteral(source),
           t.stringLiteral(symbol),
           value,
-        ]
-      )
+        ],
+      ),
     );
   }
 
@@ -115,7 +115,7 @@ export default ({ types: t }) => {
     return excludeList.some(
       (pattern) =>
         (typeof pattern === "string" && pattern === source) ||
-        (pattern instanceof RegExp && pattern.test(source))
+        (pattern instanceof RegExp && pattern.test(source)),
     );
   }
 
@@ -239,23 +239,23 @@ export default ({ types: t }) => {
             [
               t.importSpecifier(
                 t.identifier("ImportMap"),
-                t.identifier("ImportMap")
+                t.identifier("ImportMap"),
               ),
             ],
-            t.stringLiteral(helperImportPath)
+            t.stringLiteral(helperImportPath),
           );
 
           const $importsDecl = t.variableDeclaration("const", [
             t.variableDeclarator(
               t.identifier("$imports"),
-              t.newExpression(t.identifier("ImportMap"), [])
+              t.newExpression(t.identifier("ImportMap"), []),
             ),
           ]);
 
           const exportImportsDecl = t.exportNamedDeclaration(null, [
             t.exportSpecifier(
               t.identifier("$imports"),
-              t.identifier("$imports")
+              t.identifier("$imports"),
             ),
           ]);
 
@@ -278,16 +278,16 @@ export default ({ types: t }) => {
             const moduleExportsExpr = t.memberExpression(
               t.memberExpression(
                 t.identifier("module"),
-                t.identifier("exports")
+                t.identifier("exports"),
               ),
-              t.identifier("$imports")
+              t.identifier("$imports"),
             );
             const cjsExport = t.expressionStatement(
               t.assignmentExpression(
                 "=",
                 moduleExportsExpr,
-                t.identifier("$imports")
-              )
+                t.identifier("$imports"),
+              ),
             );
             body[body.length - 1].insertAfter(cjsExport);
           }
@@ -339,7 +339,7 @@ export default ({ types: t }) => {
         // The actual import registration via `$imports.$add` however needs to
         // be placed after the assignment.
         path.insertAfter(
-          createAddImportCall(ident.name, source, symbol, ident)
+          createAddImportCall(ident.name, source, symbol, ident),
         );
       },
 
@@ -410,7 +410,7 @@ export default ({ types: t }) => {
 
           state.importIdentifiers.set(spec.local, spec.local.name);
           path.insertAfter(
-            createAddImportCall(spec.local.name, source, imported, spec.local)
+            createAddImportCall(spec.local.name, source, imported, spec.local),
           );
         });
       },
@@ -462,12 +462,12 @@ export default ({ types: t }) => {
           child.replaceWith(
             t.jsxMemberExpression(
               t.jsxIdentifier("$imports"),
-              t.jsxIdentifier(alias)
-            )
+              t.jsxIdentifier(alias),
+            ),
           );
         } else {
           child.replaceWith(
-            t.memberExpression(t.identifier("$imports"), t.identifier(alias))
+            t.memberExpression(t.identifier("$imports"), t.identifier(alias)),
           );
         }
       },
