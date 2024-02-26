@@ -31,14 +31,14 @@
   "homepage": "https://github.com/robertknight/babel-plugin-mockable-imports#readme",
   "browserslist": "chrome >= 80, firefox >= 80, safari >= 14",
   "devDependencies": {
-    "@babel/cli": "^7.16.0",
-    "@babel/core": "^7.16.0",
-    "@babel/plugin-syntax-jsx": "^7.16.0",
-    "@babel/plugin-transform-destructuring": "^7.16.0",
-    "@babel/preset-env": "^7.16.0",
-    "chai": "^4.3.6",
-    "eslint": "^8.18.0",
-    "mocha": "^10.0.0",
-    "prettier": "2.7.1"
+    "@babel/cli": "^7.23.9",
+    "@babel/core": "^7.23.9",
+    "@babel/plugin-syntax-jsx": "^7.23.3",
+    "@babel/plugin-transform-destructuring": "^7.23.3",
+    "@babel/preset-env": "^7.23.9",
+    "chai": "^5.1.0",
+    "eslint": "^8.57.0",
+    "mocha": "^10.3.0",
+    "prettier": "3.2.5"
   }
 }
