@@ -16,11 +16,11 @@
     "@babel/preset-typescript": "^7.3.3",
     "@babel/register": "^7.4.4",
     "@types/chai": "^4.1.7",
-    "@types/mocha": "^5.2.6",
+    "@types/mocha": "^10.0.6",
     "@types/sinon": "^7.0.11",
     "babel-plugin-mockable-imports": "^1.4.0",
     "chai": "^4.2.0",
-    "mocha": "^6.1.4",
+    "mocha": "^10.3.0",
     "sinon": "^7.3.2",
     "typescript": "^3.4.5"
   }
