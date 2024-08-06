@@ -86,15 +86,6 @@ export class ImportMap {
         this[alias] = esImports;
       });
 
-      // Handle CJS imports (`var foo = require("bar")`).
-      const cjsAliases = Object.keys(this.$meta).filter((alias) => {
-        const [source_, symbol_] = this.$meta[alias];
-        return source_ === source && symbol_ === "<CJS>";
-      });
-      cjsAliases.forEach((alias) => {
-        this[alias] = sourceImports;
-      });
-
       // Handle named ES imports (`import { foo } from "..."`) or
       // destructured CJS imports (`var { foo } = require("...")`).
       Object.keys(esImports).forEach((symbol) => {
@@ -103,11 +94,7 @@ export class ImportMap {
           return source_ === source && symbol_ === symbol;
         });
 
-        if (
-          aliases.length === 0 &&
-          namespaceAliases.length === 0 &&
-          cjsAliases.length === 0
-        ) {
+        if (aliases.length === 0 && namespaceAliases.length === 0) {
           throw new Error(
             `Module does not import "${symbol}" from "${source}"`,
           );

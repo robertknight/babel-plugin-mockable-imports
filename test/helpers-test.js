@@ -114,15 +114,6 @@ describe("helpers", () => {
         assert.equal(map.Widget, MockWidget);
       });
 
-      it("mocks symbols imported via CommonJS imports", () => {
-        const map = new ImportMap({
-          Widget: ["./Widget", "<CJS>", function Widget() {}],
-        });
-        const MockWidget = () => {};
-        map.$mock({ "./Widget": MockWidget });
-        assert.equal(map.Widget, MockWidget);
-      });
-
       it("supports passing a function to `$mock`", () => {
         const objectOne = {};
         const map = new ImportMap({
