@@ -37,7 +37,7 @@
     "@babel/plugin-transform-destructuring": "^7.23.3",
     "@babel/preset-env": "^7.23.9",
     "chai": "^5.1.0",
-    "eslint": "^8.57.0",
+    "eslint": "^9.9.1",
     "mocha": "^10.3.0",
     "prettier": "3.2.5"
   }
